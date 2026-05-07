@@ -28,20 +28,22 @@ Microsoft Azure Tenant (https://portal.azure.com)
         │       └── Lab VMs (ephemeral, created per session/attendee)
         │
         ├── NAT Gateway: nat-hurdle-lab-machines
-        |   └── Used by snet-hurdle-lab-machines
-        |
+        │   └── Used by snet-hurdle-lab-machines
+        │
         └── Public IP: pip-hurdle-lab-bridge
-        |   ├── Used by vm-hurdle-lab-bridge
-        |   └── Assign domain: COMPANY-NAME-hurdle-bridge.cloudapp.azure.com
-        |
+        │   ├── Used by vm-hurdle-lab-bridge
+        │   └── Assign domain: COMPANY-NAME-hurdle-bridge.cloudapp.azure.com
+        │
         └── Network Security Group: nsg-hurdle-lab-bridge
             ├── Network Security Group for the Bridge VM `vm-hurdle-lab-bridge`
             ├── Is automatically created when you create `vm-hurdle-lab-bridge`.
             └── Remember to allow SSH connections from your workplace VPN's public IP address!
+
 Your workplace VPN provider
 ├── If you use a VPN, then whitelist your VPN's IP in the Azure Bridge's inbound rules e.g. `nsg-hurdle-lab-bridge` above.
 └── If you don't, then you won't be able to SSH into `vm-hurdle-lab-bridge`.
-Hurdle Dashboard (https://manage.hurdle.live)
+
+Hurdle Trainer Dashboard (https://manage.hurdle.live)
 ├── "Hurdle Lab Provider" (https://manage.hurdle.live/lab/providers/new)
 │   └── Tell Hurdle which Azure App Registration to use e.g. `app-hurdle-lab` above
 │
@@ -53,6 +55,12 @@ Hurdle Dashboard (https://manage.hurdle.live)
 │
 └── "Hurdle Lab Session" (https://manage.hurdle.live/training-sessions/new)
     └── Spins up ephemeral Lab VMs using the above Lab definition
+    
+Hurdle Conference App
+├── This is what trainers and learners actually use to join sessions and interact with each other.
+├── Web version: https://app.hurdle.live
+├── Desktop versions for Windows/Mac/Ubuntu can be downloaded from: https://go.hurdle.live
+└── The Web/Desktop app connects to your Azure Bridge VM (vm-hurdle-lab-bridge) via a WebSocket connection.
 ```
 
 ### Module Structure (and Why)
