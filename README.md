@@ -30,7 +30,7 @@ Microsoft Azure Tenant (https://portal.azure.com)
         ├── NAT Gateway: nat-hurdle-lab-machines
         │   └── Used by snet-hurdle-lab-machines
         │
-        └── Public IP: pip-hurdle-lab-bridge
+        ├── Public IP: pip-hurdle-lab-bridge
         │   ├── Used by vm-hurdle-lab-bridge
         │   └── Assign domain: COMPANY-NAME-hurdle-bridge.cloudapp.azure.com
         │
