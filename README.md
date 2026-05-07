@@ -156,25 +156,14 @@ terraform init
 terraform validate
 ```
 
-### Step 4: Generate the Final Terraform Plan File
-Generate a plan file in `tfplans/`, with verbose progress logging to CLI so you can see what is happening:
+### Step 4 (Approach A): Generate and Apply the Entire Terraform Plan
 ```bash
 terraform plan -out tfplans/full.tfplan
-```
-
-### Step 5 (Approach A): Apply the Final Terraform Plan File
-```bash
 terraform apply tfplans/full.tfplan
 ```
 
-### Step 5 (Approach B): Apply Only One Module
-By default, this root stack plans/applies both modules. If you need to execute only one side, use `-target`.
-
-Identity module only:
-```bash
-terraform plan -target=module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
-terraform apply tfplans/identity.tfplan
-```
+### Step 4 (Approach B): Generate and Apply Each Terraform Module Separately
+By default, the root stack plans/applies both modules. If you need to execute only one side, use `-target`.
 
 Infra module only:
 ```bash
@@ -182,7 +171,14 @@ terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/infra.tfplan
 terraform apply tfplans/infra.tfplan
 ```
 
+Identity module only:
+```bash
+terraform plan -target=module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
+terraform apply tfplans/identity.tfplan
+```
+
 Important:
+- If you apply each module separately, you _must_ apply `module.azure_hurdle_lab_infra` first because `module.azure_hurdle_lab_identity` needs the resource group to exist so it can assign the App Registration to it. 
 - `-target` is for scoped/exception workflows. For routine changes, prefer full-stack `plan`/`apply`.
 - Identity-only execution requires `resource_group_id` from the infra module, so infra state/resources must already exist.
 
@@ -237,10 +233,3 @@ After replacement, re-run the checks in `5) How to Validate the Deployment`.
 - If `terraform apply` fails, copy the exact error plus `az account show` output (redact IDs as needed) when requesting support.
 - Keep `terraform.tfvars` environment-specific and uncommitted.
 - Use `terraform.tfvars.example` as the reusable, documented template for operators.
-
-
-terraform plan -target=module.azure_hurdle_lab_infra -replace=module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge -out tfplans/replace-bridge-vm.tfplan
-terraform apply tfplans/replace-bridge-vm.tfplan
-ssh azureuser@172.167.109.253 -i ~/.ssh/azure_hurdle_lab_bridge_ed25519
-sudo cat /etc/guacws/appsettings.Production.json
-sudo supervisorctl status guacws
