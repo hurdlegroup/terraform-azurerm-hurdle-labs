@@ -1,6 +1,6 @@
-# Terraform Azure Labs (Hurdle)
+# Deploy Hurdle Labs in Azure with Terraform
 
-## 1) Architecture and Objectives
+## Architecture and Objectives
 
 ### Objective
 Provision a repeatable Azure foundation for Hurdle Labs, with a strict separation between identity-plane provisioning and infrastructure-plane provisioning.
@@ -32,7 +32,7 @@ Microsoft Azure Tenant (https://portal.azure.com)
         │
         ├── Public IP: pip-hurdle-lab-bridge
         │   ├── Used by vm-hurdle-lab-bridge
-        │   └── Assign domain: COMPANY-NAME-hurdle-bridge.cloudapp.azure.com
+        │   └── Assign domain: COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com
         │
         └── Network Security Group: nsg-hurdle-lab-bridge
             ├── Network Security Group for the Bridge VM `vm-hurdle-lab-bridge`
@@ -48,7 +48,7 @@ Hurdle Trainer Dashboard (https://manage.hurdle.live)
 │   └── Tell Hurdle which Azure App Registration to use e.g. `app-hurdle-lab` above
 │
 ├── "Hurdle Lab Bridge" (https://manage.hurdle.live/lab/bridges/new)
-│   └── Defines connection to Azure Bridge e.g. wss://COMPANY-NAME-hurdle-bridge.cloudapp.azure.com
+│   └── Defines connection to Azure Bridge e.g. wss://COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com
 │
 ├── "Hurdle Lab" (https://manage.hurdle.live/lab/instances/new)
 │   └── Defines VM size, image, VNet, lab subnet, etc
@@ -69,7 +69,7 @@ Hurdle Conference App
 
 This separation allows IAM-privileged operators to handle identity resources, while infrastructure operators handle resource deployment without broad Entra permissions.
 
-## 2) Prerequisites
+## Prerequisites
 
 ### Tooling Prerequisites
 - Azure CLI installed (`az`)
@@ -99,20 +99,23 @@ az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
 In short: identity-plane permissions and infrastructure-plane permissions can be delegated to different operator roles.
 
 ### Hurdle Community Compute Gallery Prerequisites
-Before provisioning the bridge VM, you must add Hurdle's community gallery to your tenant/subscription. Use these exact gallery details:
+Before provisioning the bridge VM, check that Hurdle's Community Compute Gallery is available in your target Azure region:
 - Community gallery name: `hurdle-ec6051c3-68bb-4651-a552-8255caddd442`
 - Community gallery title: `hurdlePublicImages`
 
 Critical regional requirement:
-- **<ins>You _must_ make `hurdlePublicImages` available in the exact same region as your planned bridge VM.</ins>**
-- Example #1: if you set Terraform variable `location = "uksouth"`, then you must make `hurdlePublicImages` available in your Azure tenant's `UK South` region.
-- Example #2: You gain learners in a new region and want to reduce lab latency for them. To deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), you must also make `hurdlePublicImages` available in your Azure tenant's `North Europe` region.
+- **<ins>`hurdlePublicImages` must be available in the exact same region as your planned bridge VM.</ins>**
+- Example #1: If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
+- Example #2: You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
 
 If this step is skipped (or done in a different region), image lookup in `terraform.tfvars.example` will return no result and bridge VM provisioning will fail.
 
-## 3) Deployment Runbook
+**If `hurdlePublicImages` is not currently available in your target region, then please open a support ticket with us**: https://help.customer.hurdle.live/servicedesk/customer/portal/2/create/44.
+We'll then publish `hurdlePublicImages` in your region as soon as possible.
 
-### Terraform Logging (Optional but Recommended)
+## Deployment Runbook
+
+### Step 0: Enable Terraform Logging (Optional but Recommended)
 To see progress details during slower Terraform operations, prefix commands with `TF_LOG=INFO`:
 
 ```bash
@@ -134,7 +137,13 @@ terraform apply tfplans/full.tfplan
 
 If you only want console output and no log file, set only `TF_LOG`.
 
-### Step 1: Copy and Populate `terraform.tfvars`
+### Step 1: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
+1. Establish what `<bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com` domain you want to use.
+2. Go to https://manage.hurdle.live/lab/bridges/new and enter the Bridge domain you want to use, with a WebSocket protocol prefix.
+For example:`wss://COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com`.
+3. The Hurdle server will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
+
+### Step 2: Copy and Populate `terraform.tfvars`
 In your cloned project directory:
 
 ```bash
@@ -158,23 +167,23 @@ Populate at minimum:
 Critical check:
 - `bridge_ssh_allowed_cidrs` must include your workplace VPN/public egress CIDR, or SSH to the bridge VM will fail.
 
-### Step 2: Initialize Terraform
+### Step 3: Initialize Terraform
 ```bash
 terraform init
 ```
 
-### Step 3: Validate the Configuration
+### Step 4: Validate the Configuration
 ```bash
 terraform validate
 ```
 
-### Step 4 (Approach A): Generate and Apply the Entire Terraform Plan
+### Step 5 (Approach A): Generate and Apply the Entire Terraform Plan
 ```bash
 terraform plan -out tfplans/full.tfplan
 terraform apply tfplans/full.tfplan
 ```
 
-### Step 4 (Approach B): Generate and Apply Each Terraform Module Separately
+### Step 5 (Approach B): Generate and Apply Each Terraform Module Separately
 By default, the root stack plans/applies both modules. If you need to execute only one side, use `-target`.
 
 Infra module only:
@@ -194,7 +203,51 @@ Important:
 - `-target` is for scoped/exception workflows. For routine changes, prefer full-stack `plan`/`apply`.
 - Identity-only execution requires `resource_group_id` from the infra module, so infra state/resources must already exist.
 
-## 4) Troubleshooting
+### Step 5: Validate the Deployment
+
+1. Confirm that the deployed bridge VM is reachable and that guacws was configured and started correctly:
+    ```bash
+    > ssh "$(terraform output -raw bridge_admin_username)"@"$(terraform output -raw bridge_public_ip_address)" -i ~/.ssh/azure_hurdle_lab_bridge_ed25519
+   
+    # If Terraform complains that some outputs aren't readable, then re-sync state by running:
+    > terraform apply -refresh-only
+    Would you like to update the Terraform state to reflect these detected changes?
+    Terraform will write these changes to the state without modifying any real infrastructure.
+    There is no undo. Only 'yes' will be accepted to confirm.
+    Enter a value: YES
+    # Then retry the ssh command above and continue to the validation steps below...
+
+    > sudo apt install jq
+    > sudo cat /etc/guacws/appsettings.Production.json | jq
+    {
+        "Cipher": {
+            "Key": "..."
+        },
+        "Server": {
+            "HttpPort": 80,
+            "HttpsPort": 443,
+            "LetsEncrypt": {
+                "Domains": [
+                    "..."
+                ],
+                "EmailAddress": "..."
+            }
+        }
+    }
+
+    > sudo supervisorctl status guacws
+    guacws   RUNNING   pid 1025, uptime 0:01:30
+    ```
+   - Expected result:
+     - `/etc/guacws/appsettings.Production.json` exists with your configured domain, email, and lab secret values.
+     - `supervisorctl status guacws` reports `RUNNING`.
+
+2. Load the Bridge's URL (`bridge_public_fqdn` from `./terraform.tfstate`) in your web browser.
+You should see a GuacWS server welcome page like this:
+   ![Screenshot of GuacWS holding page loaded in a web browser](./docs/images/screenshot-guacws-holding-page.png)
+
+
+## Troubleshooting
 
 ### Partial Apply or Interrupted Run
 Terraform is idempotent for resources tracked in state. If an apply fails midway, Terraform can usually continue from where it stopped.
@@ -213,21 +266,8 @@ Important:
 - Prefer generating a fresh plan when resuming. Do not rely on an old/stale plan file from before a failure.
 - If Azure resources exist but are missing from Terraform state, Terraform may try to recreate them and fail with "already exists". In that case, import the resource into state before re-applying.
 
-## 5) How to Validate the Deployment
 
-Use these checks to verify that the deployed bridge VM is reachable and that guacws was configured and started correctly:
-
-```bash
-ssh "$(terraform output -raw bridge_admin_username)"@"$(terraform output -raw bridge_public_ip_address)" -i ~/.ssh/azure_hurdle_lab_bridge_ed25519
-sudo cat /etc/guacws/appsettings.Production.json
-sudo supervisorctl status guacws
-```
-
-Expected result:
-- `/etc/guacws/appsettings.Production.json` exists with your configured domain, email, and lab secret values.
-- `supervisorctl status guacws` reports `RUNNING`.
-
-## 6) How to Replace the Bridge VM
+## How to Replace the Bridge VM
 
 You may need to replace the bridge VM when re-specing it (for example, changing VM size/CPU/RAM) or when you need first-boot provisioning to run again on a fresh instance.
 

@@ -16,7 +16,7 @@ location = "uksouth"
 resource_group_name = "rg-hurdle-labs"
 
 # Set manually: lowercase letters/numbers/hyphens only.
-# Used as: <bridge_subdomain_slug>-hurdle-bridge.cloudapp.azure.com
+# Used as: <bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com
 bridge_subdomain_slug = "your-company"
 
 # Set manually: Linux username for SSH login on the bridge VM.
@@ -29,7 +29,7 @@ bridge_vm_size = "Standard_D4s_v3"
 bridge_technical_contact_email = "platform@example.com"
 
 # Set manually: Alphanumeric secret that should've been automatically emailed to you after
-# you registered the Azure Lab Bridge's public domain (`*.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
+# you registered the Azure Lab Bridge's public domain (`*.<location>.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
 bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"
 
 # Full Azure image ID for bridge VM source image.
