@@ -98,6 +98,18 @@ az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
 
 In short: identity-plane permissions and infrastructure-plane permissions can be delegated to different operator roles.
 
+### Hurdle Community Compute Gallery Prerequisites
+Before provisioning the bridge VM, you must add Hurdle's community gallery to your tenant/subscription. Use these exact gallery details:
+- Community gallery name: `hurdle-ec6051c3-68bb-4651-a552-8255caddd442`
+- Community gallery title: `hurdlePublicImages`
+
+Critical regional requirement:
+- **<ins>You _must_ make `hurdlePublicImages` available in the exact same region as your planned bridge VM.</ins>**
+- Example #1: if you set Terraform variable `location = "uksouth"`, then you must make `hurdlePublicImages` available in your Azure tenant's `UK South` region.
+- Example #2: You gain learners in a new region and want to reduce lab latency for them. To deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), you must also make `hurdlePublicImages` available in your Azure tenant's `North Europe` region.
+
+If this step is skipped (or done in a different region), image lookup in `terraform.tfvars.example` will return no result and bridge VM provisioning will fail.
+
 ## 3) Deployment Runbook
 
 ### Terraform Logging (Optional but Recommended)
