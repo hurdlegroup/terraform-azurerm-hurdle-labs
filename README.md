@@ -206,7 +206,7 @@ Important:
 Use these checks to verify that the deployed bridge VM is reachable and that guacws was configured and started correctly:
 
 ```bash
-ssh azureuser@"$(terraform output -raw bridge_public_ip_address)" -i ~/.ssh/azure_hurdle_lab_bridge_ed25519
+ssh "$(terraform output -raw bridge_admin_username)"@"$(terraform output -raw bridge_public_ip_address)" -i ~/.ssh/azure_hurdle_lab_bridge_ed25519
 sudo cat /etc/guacws/appsettings.Production.json
 sudo supervisorctl status guacws
 ```
