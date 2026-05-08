@@ -1,0 +1,46 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - alpha
+      - beta
+
+permissions:
+  id-token: write
+  issues: write
+  contents: write
+  pull-requests: write
+  packages: read
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Terraform init
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Release
+        run: npx semantic-release

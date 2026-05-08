@@ -1,0 +1,13 @@
+{
+  "name": "@hurdlegroup/terraform-azurerm-hurdle-labs",
+  "version": "0.0.0-development",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Terraform modules for Hurdle Labs on Azure",
+  "devDependencies": {
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^11.0.6",
+    "@semantic-release/release-notes-generator": "^14.1.0",
+    "semantic-release": "^24.2.7"
+  }
+}
