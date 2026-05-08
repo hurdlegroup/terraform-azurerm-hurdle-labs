@@ -40,8 +40,17 @@ variable "bridge_source_image_id" {
 }
 
 variable "app_display_name" {
+  type = string
+}
+
+variable "app_secret_display_name" {
   type    = string
-  default = "app-hurdle-lab"
+  default = null
+}
+
+variable "app_secret_lifetime" {
+  type    = string
+  default = "4380h"
 }
 
 variable "resource_group_name" {

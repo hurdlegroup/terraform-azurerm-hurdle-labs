@@ -35,9 +35,9 @@ ${yamlencode({
 })}
 EOT
 
-  rendered_cloud_init = var.bridge_cloud_init != null ? var.bridge_cloud_init : (
-    var.bridge_cloud_init_template != null ? templatefile(var.bridge_cloud_init_template, {}) : local.generated_bridge_cloud_init
-  )
+rendered_cloud_init = var.bridge_cloud_init != null ? var.bridge_cloud_init : (
+  var.bridge_cloud_init_template != null ? templatefile(var.bridge_cloud_init_template, {}) : local.generated_bridge_cloud_init
+)
 }
 
 resource "random_id" "suffix" {

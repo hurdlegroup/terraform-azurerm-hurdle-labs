@@ -6,6 +6,14 @@ resource "azuread_service_principal" "hurdle_lab" {
   client_id = azuread_application.hurdle_lab.client_id
 }
 
+resource "time_static" "app_secret_created_at" {}
+
+resource "azuread_application_password" "hurdle_lab" {
+  application_id = azuread_application.hurdle_lab.id
+  display_name   = coalesce(var.app_secret_display_name, "${var.app_display_name} Secret v1")
+  end_date       = timeadd(time_static.app_secret_created_at.rfc3339, var.app_secret_lifetime)
+}
+
 data "azurerm_subscription" "current" {
   subscription_id = var.subscription_id
 }

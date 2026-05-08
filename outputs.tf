@@ -6,6 +6,19 @@ output "service_principal_object_id" {
   value = module.azure_hurdle_lab_identity.service_principal_object_id
 }
 
+output "app_registration_client_secret_value" {
+  value     = module.azure_hurdle_lab_identity.app_registration_client_secret_value
+  sensitive = true
+}
+
+output "app_registration_client_secret_name" {
+  value = module.azure_hurdle_lab_identity.app_registration_client_secret_name
+}
+
+output "app_registration_client_secret_id" {
+  value = module.azure_hurdle_lab_identity.app_registration_client_secret_id
+}
+
 output "resource_group_name" {
   value = module.azure_hurdle_lab_infra.resource_group_name
 }

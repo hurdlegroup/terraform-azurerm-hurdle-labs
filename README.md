@@ -3,7 +3,7 @@
 ## Architecture and Objectives
 
 ### Objective
-Provision a repeatable Azure foundation for Hurdle Labs, with a strict separation between identity-plane provisioning and infrastructure-plane provisioning.
+Deploy the Azure resources required for your organisation to use Hurdle Labs, with a strict separation between identity-plane provisioning and infrastructure-plane provisioning.
 
 ### Target Architecture
 ```text
@@ -104,7 +104,7 @@ Before provisioning the bridge VM, check that Hurdle's Community Compute Gallery
 - Community gallery title: `hurdlePublicImages`
 
 Critical regional requirement:
-- **<ins>`hurdlePublicImages` must be available in the exact same region as your planned bridge VM.</ins>**
+- **`hurdlePublicImages` must be available in the exact same region as your planned bridge VM.**
 - Example #1: If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
 - Example #2: You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
 
@@ -155,6 +155,7 @@ Populate at minimum:
 - `tenant_id`
 - `location`
 - `resource_group_name`
+- `app_display_name`
 - `bridge_subdomain_slug`
 - `bridge_admin_username`
 - `bridge_vm_size` (recommended minimum: `Standard_D4s_v3`)
@@ -166,6 +167,10 @@ Populate at minimum:
 
 Critical check:
 - `bridge_ssh_allowed_cidrs` must include your workplace VPN/public egress CIDR, or SSH to the bridge VM will fail.
+
+Identity secret check:
+- If `app_secret_display_name = null`, Terraform defaults the secret name to `<app_display_name> Secret v1`.
+- `app_registration_client_secret_value` is sensitive and is stored in Terraform state. Protect `terraform.tfstate` and never commit it.
 
 ### Step 3: Initialize Terraform
 ```bash
@@ -203,7 +208,7 @@ Important:
 - `-target` is for scoped/exception workflows. For routine changes, prefer full-stack `plan`/`apply`.
 - Identity-only execution requires `resource_group_id` from the infra module, so infra state/resources must already exist.
 
-### Step 5: Validate the Deployment
+### Step 6: Validate the `azure-hurdle-lab-infra` Deployment
 
 1. Confirm that the deployed bridge VM is reachable and that guacws was configured and started correctly:
     ```bash
@@ -246,6 +251,41 @@ Important:
 You should see a GuacWS server welcome page like this:
    ![Screenshot of GuacWS holding page loaded in a web browser](./docs/images/screenshot-guacws-holding-page.png)
 
+### Step 7: Validate the `azure-hurdle-lab-identity` Deployment
+
+Confirm that the service principal has both required role assignments:
+
+```bash
+SP_OBJECT_ID="$(terraform output -raw service_principal_object_id)"
+RG_ID="$(terraform output -raw resource_group_id)"
+SUB_ID="$(az account show --query id -o tsv)"
+
+az role assignment list --assignee-object-id "$SP_OBJECT_ID" --scope "$RG_ID" -o table
+az role assignment list --assignee-object-id "$SP_OBJECT_ID" --scope "/subscriptions/$SUB_ID" -o table
+```
+
+Expected result:
+- Resource group scope output includes role `Contributor` on `/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME>`.
+- Subscription scope output includes role `Quota Request Operator` on `/subscriptions/<SUBSCRIPTION_ID>`.
+
+---
+
+## 🚨 Important: Azure App Secret Rotation 🚨
+- Hurdle orchestrates resources within your Azure resource group via an Azure App Registration.
+- This Azure App Registration has a secret with a finite lifetime (of your choice) for security reasons.
+- You are responsible for ensuring that your current Azure App Registration secret is populated in https://manage.hurdle.live/lab/providers.
+- **If the App secret expires, <ins>then your Hurdle Lab Sessions will stop working.</ins>**
+- **If you rotate the App secret in https://portal.azure.com but do not update the secret in https://manage.hurdle.live/lab/providers, <ins>then your Hurdle Lab Sessions will stop working.</ins>**
+- Hurdle sends App secret expiry alerts 30/14/7/5/3/1 days before expiry and also shows expiry banners at the top of every page in https://manage.hurdle.live.
+- Hurdle cannot rotate your Azure App secret on your behalf; only your Azure administrators can do that.
+- **Strongly recommended:**
+    1. Create a policy document for rotating your Azure App secret on a regular schedule e.g. `SOP: Rotate Azure Hurdle App Secret Every 3/6/9/12 Months`.
+    2. Share this secret-rotation document widely within your IT team, so everyone knows how to do it, and you don't inadvertently have a Labs Training outage simply because a sysadmin was ill that day.
+    3. Auto-schedule a `Rotate Hurdle Azure App Secret` task in line with your chosen App secret lifetime. This task should instruct the Azure admin to:
+        1. Generate a new App secret in https://portal.azure.com and then paste it into https://manage.hurdle.live/lab/providers.
+        2. Start and join a Hurdle Lab Session from https://manage.hurdle.live/training-sessions to confirm that the new App secret works as expected.
+
+___
 
 ## Troubleshooting
 

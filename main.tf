@@ -23,18 +23,20 @@ module "azure_hurdle_lab_infra" {
   bridge_subnet_cidr   = var.bridge_subnet_cidr
   machines_subnet_cidr = var.machines_subnet_cidr
 
-  bridge_cloud_init          = var.bridge_cloud_init
-  bridge_cloud_init_template = var.bridge_cloud_init_template
-  bridge_vm_size             = var.bridge_vm_size
+  bridge_cloud_init                   = var.bridge_cloud_init
+  bridge_cloud_init_template          = var.bridge_cloud_init_template
+  bridge_vm_size                      = var.bridge_vm_size
   bridge_os_disk_storage_account_type = var.bridge_os_disk_storage_account_type
   bridge_os_disk_size_gb              = var.bridge_os_disk_size_gb
-  tags                       = var.tags
+  tags                                = var.tags
 }
 
 module "azure_hurdle_lab_identity" {
   source = "./modules/azure-hurdle-lab-identity"
 
-  subscription_id   = var.subscription_id
-  app_display_name  = var.app_display_name
-  resource_group_id = module.azure_hurdle_lab_infra.resource_group_id
+  subscription_id         = var.subscription_id
+  app_display_name        = var.app_display_name
+  app_secret_display_name = var.app_secret_display_name
+  app_secret_lifetime     = var.app_secret_lifetime
+  resource_group_id       = module.azure_hurdle_lab_infra.resource_group_id
 }
