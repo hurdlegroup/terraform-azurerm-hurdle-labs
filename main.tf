@@ -26,6 +26,8 @@ module "azure_hurdle_lab_infra" {
   bridge_cloud_init          = var.bridge_cloud_init
   bridge_cloud_init_template = var.bridge_cloud_init_template
   bridge_vm_size             = var.bridge_vm_size
+  bridge_os_disk_storage_account_type = var.bridge_os_disk_storage_account_type
+  bridge_os_disk_size_gb              = var.bridge_os_disk_size_gb
   tags                       = var.tags
 }
 

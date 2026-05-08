@@ -199,7 +199,8 @@ resource "azurerm_linux_virtual_machine" "bridge" {
   os_disk {
     name                 = "osdisk-${var.bridge_vm_name}-${random_id.suffix.hex}"
     caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+    storage_account_type = var.bridge_os_disk_storage_account_type
+    disk_size_gb         = var.bridge_os_disk_size_gb
   }
 
   custom_data = local.rendered_cloud_init != null ? base64encode(local.rendered_cloud_init) : null

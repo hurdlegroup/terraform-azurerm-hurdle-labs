@@ -112,6 +112,16 @@ variable "bridge_vm_size" {
   type = string
 }
 
+variable "bridge_os_disk_storage_account_type" {
+  type    = string
+  default = "Standard_LRS"
+}
+
+variable "bridge_os_disk_size_gb" {
+  type    = number
+  default = null
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
