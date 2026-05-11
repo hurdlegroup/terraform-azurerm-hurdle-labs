@@ -39,4 +39,5 @@ module "azure_hurdle_lab_identity" {
   app_secret_display_name = var.app_secret_display_name
   app_secret_lifetime     = var.app_secret_lifetime
   resource_group_id       = module.azure_hurdle_lab_infra.resource_group_id
+  depends_on              = [module.azure_hurdle_lab_infra]
 }
