@@ -115,7 +115,27 @@ We'll then publish `hurdlePublicImages` in your region as soon as possible.
 
 ## Deployment Runbook
 
-### Step 0: Enable Terraform Logging (Optional but Recommended)
+### Step 0: Choose Delivery Model
+
+Use one of these two approaches:
+
+1. Git clone approach (recommended for teams that want the bundled examples/docs/scripts):
+    ```bash
+    git clone git@github.com:hurdlegroup/terraform-azurerm-hurdle-labs.git
+    cd terraform-azurerm-hurdle-labs
+    ```
+
+2. Terraform Registry approach (recommended for teams composing this module from their own Terraform stack):
+    ```hcl
+    module "hurdle_labs" {
+      source  = "hurdlegroup/hurdle-labs/azurerm"
+      version = "1.0.0"
+    
+      # ... set required inputs here ...
+    }
+    ```
+
+### Step 1: Enable Terraform Logging (Optional but Recommended)
 To see progress details during slower Terraform operations, prefix commands with `TF_LOG=INFO`:
 
 ```bash
@@ -137,18 +157,23 @@ terraform apply tfplans/full.tfplan
 
 If you only want console output and no log file, set only `TF_LOG`.
 
-### Step 1: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
+### Step 2: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
 1. Establish what `<bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com` domain you want to use.
 2. Go to https://manage.hurdle.live/lab/bridges/new and enter the Bridge domain you want to use, with a WebSocket protocol prefix.
 For example:`wss://COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com`.
 3. The Hurdle server will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
 
-### Step 2: Copy and Populate `terraform.tfvars`
-In your cloned project directory:
+### Step 3: Populate Variables
+
+If you are using the Git clone approach, in your cloned project directory:
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
+
+If you are using the Terraform Registry approach:
+- put the same values directly into your own root module inputs for `module "hurdle_labs"`, or
+- use your own `terraform.tfvars` in that consumer repo.
 
 Populate at minimum:
 - `subscription_id`
@@ -172,34 +197,46 @@ Identity secret check:
 - If `app_secret_display_name = null`, Terraform defaults the secret name to `<app_display_name> Secret v1`.
 - `app_registration_client_secret_value` is sensitive and is stored in Terraform state. Protect `terraform.tfstate` and never commit it.
 
-### Step 3: Initialize Terraform
+### Step 4: Initialize Terraform
 ```bash
 terraform init
 ```
 
-### Step 4: Validate the Configuration
+### Step 5: Validate the Configuration
 ```bash
 terraform validate
 ```
 
-### Step 5 (Approach A): Generate and Apply the Entire Terraform Plan
+### Step 6 (Approach A): Generate and Apply the Entire Terraform Plan
 ```bash
 terraform plan -out tfplans/full.tfplan
 terraform apply tfplans/full.tfplan
 ```
 
-### Step 5 (Approach B): Generate and Apply Each Terraform Module Separately
+### Step 6 (Approach B): Generate and Apply Each Terraform Module Separately
 By default, the root stack plans/applies both modules. If you need to execute only one side, use `-target`.
 
-Infra module only:
+Infra module only (Git clone approach):
 ```bash
 terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/infra.tfplan
 terraform apply tfplans/infra.tfplan
 ```
 
-Identity module only:
+Infra module only (Terraform Registry approach):
+```bash
+terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_infra -out tfplans/infra.tfplan
+terraform apply tfplans/infra.tfplan
+```
+
+Identity module only (Git clone approach):
 ```bash
 terraform plan -target=module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
+terraform apply tfplans/identity.tfplan
+```
+
+Identity module only (Terraform Registry approach):
+```bash
+terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
 terraform apply tfplans/identity.tfplan
 ```
 
@@ -208,7 +245,7 @@ Important:
 - `-target` is for scoped/exception workflows. For routine changes, prefer full-stack `plan`/`apply`.
 - Identity-only execution requires `resource_group_id` from the infra module, so infra state/resources must already exist.
 
-### Step 6: Validate the `azure-hurdle-lab-infra` Deployment
+### Step 7: Validate the `azure-hurdle-lab-infra` Deployment
 
 1. Confirm that the deployed bridge VM is reachable and that guacws was configured and started correctly:
     ```bash
@@ -251,7 +288,7 @@ Important:
 You should see a GuacWS server welcome page like this:
    ![Screenshot of GuacWS holding page loaded in a web browser](./docs/images/screenshot-guacws-holding-page.png)
 
-### Step 7: Validate the `azure-hurdle-lab-identity` Deployment
+### Step 8: Validate the `azure-hurdle-lab-identity` Deployment
 
 Confirm that the service principal has both required role assignments:
 
@@ -311,9 +348,17 @@ Important:
 
 You may need to replace the bridge VM when re-specing it (for example, changing VM size/CPU/RAM) or when you need first-boot provisioning to run again on a fresh instance.
 
+Git clone approach:
 ```bash
 rm -f tfplans/replace-bridge-vm.tfplan
 terraform plan -target=module.azure_hurdle_lab_infra -replace=module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge -out tfplans/replace-bridge-vm.tfplan
+terraform apply tfplans/replace-bridge-vm.tfplan
+```
+
+Terraform Registry approach:
+```bash
+rm -f tfplans/replace-bridge-vm.tfplan
+terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_infra -replace=module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge -out tfplans/replace-bridge-vm.tfplan
 terraform apply tfplans/replace-bridge-vm.tfplan
 ```
 
