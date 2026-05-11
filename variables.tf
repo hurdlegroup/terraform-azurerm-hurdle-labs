@@ -1,137 +1,167 @@
 variable "subscription_id" {
-  type = string
+  description = "Azure subscription ID used for subscription-scoped operations."
+  type        = string
 }
 
 variable "tenant_id" {
-  type = string
+  description = "Azure tenant ID used by azurerm and azuread providers."
+  type        = string
 }
 
 variable "location" {
-  type = string
+  description = "Azure region where infrastructure resources are deployed."
+  type        = string
 }
 
 variable "bridge_subdomain_slug" {
-  type = string
+  description = "Slug used to generate bridge public DNS label: <slug>-hurdle-bridge.<region>.cloudapp.azure.com."
+  type        = string
 }
 
 variable "bridge_admin_username" {
-  type = string
+  description = "Linux admin username for SSH access to the bridge VM."
+  type        = string
 }
 
 variable "bridge_ssh_public_key" {
-  type = string
+  description = "SSH public key injected into the bridge VM for key-based login."
+  type        = string
 }
 
 variable "bridge_ssh_allowed_cidrs" {
-  type = list(string)
+  description = "CIDR list allowed to SSH (port 22) into the bridge VM."
+  type        = list(string)
 }
 
 variable "bridge_technical_contact_email" {
-  type = string
+  description = "Technical contact email used by Let's Encrypt configuration on the bridge."
+  type        = string
 }
 
 variable "bridge_lab_secret" {
-  type      = string
-  sensitive = true
+  description = "Hurdle lab bridge shared secret written into guacws Cipher.Key."
+  type        = string
+  sensitive   = true
 }
 
 variable "bridge_source_image_id" {
-  type = string
+  description = "Full Azure image resource ID used as source image for the bridge VM."
+  type        = string
 }
 
 variable "app_display_name" {
-  type = string
+  description = "Display name for the Azure Entra app registration."
+  type        = string
 }
 
 variable "app_secret_display_name" {
-  type    = string
-  default = null
+  description = "Optional display name for the app registration client secret. Null defaults to '<app_display_name> Secret v1'."
+  type        = string
+  default     = null
 }
 
 variable "app_secret_lifetime" {
-  type    = string
-  default = "4380h"
+  description = "App registration secret lifetime duration in hours, e.g. 4380h for 6 months."
+  type        = string
+  default     = "4380h"
 }
 
 variable "resource_group_name" {
-  type = string
+  description = "Name of the Azure resource group created for Hurdle lab infrastructure."
+  type        = string
 }
 
 variable "vnet_name" {
-  type    = string
-  default = "vnet-hurdle-lab"
+  description = "Virtual network name for Hurdle lab infrastructure."
+  type        = string
+  default     = "vnet-hurdle-lab"
 }
 
 variable "bridge_subnet_name" {
-  type    = string
-  default = "snet-hurdle-lab-bridge"
+  description = "Subnet name used for the persistent bridge VM."
+  type        = string
+  default     = "snet-hurdle-lab-bridge"
 }
 
 variable "machines_subnet_name" {
-  type    = string
-  default = "snet-hurdle-lab-machines"
+  description = "Subnet name used for ephemeral learner/lab VMs."
+  type        = string
+  default     = "snet-hurdle-lab-machines"
 }
 
 variable "bridge_vm_name" {
-  type    = string
-  default = "vm-hurdle-lab-bridge"
+  description = "Name of the persistent bridge virtual machine."
+  type        = string
+  default     = "vm-hurdle-lab-bridge"
 }
 
 variable "bridge_nsg_name" {
-  type    = string
-  default = "nsg-hurdle-lab-bridge"
+  description = "Network Security Group name for bridge VM traffic policy."
+  type        = string
+  default     = "nsg-hurdle-lab-bridge"
 }
 
 variable "bridge_pip_name" {
-  type    = string
-  default = "pip-hurdle-lab-bridge"
+  description = "Public IP resource name assigned to the bridge VM."
+  type        = string
+  default     = "pip-hurdle-lab-bridge"
 }
 
 variable "machines_nat_name" {
-  type    = string
-  default = "nat-hurdle-lab-machines"
+  description = "NAT Gateway name used for machines subnet outbound egress."
+  type        = string
+  default     = "nat-hurdle-lab-machines"
 }
 
 variable "vnet_cidr" {
-  type    = string
-  default = "10.200.0.0/16"
+  description = "Address space CIDR for the virtual network."
+  type        = string
+  default     = "10.200.0.0/16"
 }
 
 variable "bridge_subnet_cidr" {
-  type    = string
-  default = "10.200.1.0/24"
+  description = "CIDR for the bridge subnet."
+  type        = string
+  default     = "10.200.1.0/24"
 }
 
 variable "machines_subnet_cidr" {
-  type    = string
-  default = "10.200.2.0/24"
+  description = "CIDR for the machines subnet."
+  type        = string
+  default     = "10.200.2.0/24"
 }
 
 variable "bridge_cloud_init" {
-  type    = string
-  default = null
+  description = "Optional inline cloud-init content for the bridge VM. If null, generated default is used."
+  type        = string
+  default     = null
 }
 
 variable "bridge_cloud_init_template" {
-  type    = string
-  default = null
+  description = "Optional path to cloud-init template file for bridge VM customization."
+  type        = string
+  default     = null
 }
 
 variable "bridge_vm_size" {
-  type = string
+  description = "Azure VM size for the bridge VM, e.g. Standard_D4s_v3."
+  type        = string
 }
 
 variable "bridge_os_disk_storage_account_type" {
-  type    = string
-  default = "Standard_LRS"
+  description = "Storage account type for bridge VM OS disk."
+  type        = string
+  default     = "Standard_LRS"
 }
 
 variable "bridge_os_disk_size_gb" {
-  type    = number
-  default = null
+  description = "Optional explicit OS disk size in GB for bridge VM. Null uses image default."
+  type        = number
+  default     = null
 }
 
 variable "tags" {
-  type    = map(string)
-  default = {}
+  description = "Map of tags applied to supported resources."
+  type        = map(string)
+  default     = {}
 }
