@@ -126,14 +126,13 @@ Use one of these two approaches:
     ```
 
 2. Terraform Registry approach (recommended for teams composing this module from their own Terraform stack):
-    ```hcl
-    module "hurdle_labs" {
-      source  = "hurdlegroup/hurdle-labs/azurerm"
-      version = "1.0.0"
-    
-      # ... set required inputs here ...
-    }
-    ```
+   - use the complete Terraform-native consumer stack in [`examples/registry-consumer`](./examples/registry-consumer)
+   - that example includes:
+     - `main.tf` module call
+     - `variables.tf`
+     - `outputs.tf` (including app secret re-export)
+     - `terraform.tfvars.example`
+     - usage commands in `examples/registry-consumer/README.md`
 
 ### Step 1: Enable Terraform Logging (Optional but Recommended)
 To see progress details during slower Terraform operations, prefix commands with `TF_LOG=INFO`:
