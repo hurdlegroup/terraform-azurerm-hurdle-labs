@@ -1,15 +1,15 @@
 variable "subscription_id" {
-  description = "Azure subscription ID used for subscription-scoped role assignment."
+  description = "Azure subscription ID used for subscription-scoped operations."
   type        = string
 }
 
 variable "app_display_name" {
-  description = "Display name for the app registration."
+  description = "Display name for the Azure Entra app registration."
   type        = string
 }
 
 variable "app_secret_display_name" {
-  description = "Display name for the app registration secret."
+  description = "Optional display name for the app registration client secret. Null defaults to '<app_display_name> Secret v1'."
   type        = string
   default     = null
 }

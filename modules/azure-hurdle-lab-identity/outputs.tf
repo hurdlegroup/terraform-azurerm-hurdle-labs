@@ -1,10 +1,10 @@
 output "app_registration_client_id" {
-  description = "Client ID of app registration."
+  description = "Client ID (application ID) of the created app registration."
   value       = azuread_application.hurdle_lab.client_id
 }
 
 output "service_principal_object_id" {
-  description = "Object ID of the service principal."
+  description = "Object ID of the created service principal."
   value       = azuread_service_principal.hurdle_lab.object_id
 }
 
@@ -15,11 +15,11 @@ output "app_registration_client_secret_value" {
 }
 
 output "app_registration_client_secret_name" {
-  description = "Display name of the app registration client secret."
+  description = "Display name of the created app registration client secret."
   value       = azuread_application_password.hurdle_lab.display_name
 }
 
 output "app_registration_client_secret_id" {
-  description = "ID of the app registration client secret."
+  description = "Resource ID of the created app registration client secret."
   value       = azuread_application_password.hurdle_lab.id
 }

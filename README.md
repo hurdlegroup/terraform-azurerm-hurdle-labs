@@ -105,8 +105,8 @@ Before provisioning the bridge VM, check that Hurdle's Community Compute Gallery
 
 Critical regional requirement:
 - **`hurdlePublicImages` must be available in the exact same region as your planned bridge VM.**
-- Example #1: If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
-- Example #2: You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
+- **Example #1:** If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
+- **Example #2:** You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
 
 If this step is skipped (or done in a different region), image lookup in `terraform.tfvars.example` will return no result and bridge VM provisioning will fail.
 
@@ -115,7 +115,26 @@ We'll then publish `hurdlePublicImages` in your region as soon as possible.
 
 ## Deployment Runbook
 
-### Step 0: Enable Terraform Logging (Optional but Recommended)
+### Step 0: Choose Delivery Model
+
+Use one of these two approaches:
+
+1. Git clone approach (recommended for teams that want the bundled examples/docs/scripts):
+    ```bash
+    git clone git@github.com:hurdlegroup/terraform-azurerm-hurdle-labs.git
+    cd terraform-azurerm-hurdle-labs
+    ```
+
+2. Terraform Registry approach (recommended for teams composing this module from their own Terraform stack):
+   - use the complete Terraform-native consumer stack in [`examples/registry-consumer`](./examples/registry-consumer)
+   - that example includes:
+     - `main.tf` module call
+     - `variables.tf`
+     - `outputs.tf` (including app secret re-export)
+     - `terraform.tfvars.example`
+     - usage commands in `examples/registry-consumer/README.md`
+
+### Step 1: Enable Terraform Logging (Optional but Recommended)
 To see progress details during slower Terraform operations, prefix commands with `TF_LOG=INFO`:
 
 ```bash
@@ -137,18 +156,23 @@ terraform apply tfplans/full.tfplan
 
 If you only want console output and no log file, set only `TF_LOG`.
 
-### Step 1: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
+### Step 2: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
 1. Establish what `<bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com` domain you want to use.
 2. Go to https://manage.hurdle.live/lab/bridges/new and enter the Bridge domain you want to use, with a WebSocket protocol prefix.
 For example:`wss://COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com`.
 3. The Hurdle server will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
 
-### Step 2: Copy and Populate `terraform.tfvars`
-In your cloned project directory:
+### Step 3: Populate Variables
+
+If you are using the Git clone approach, in your cloned project directory:
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
+
+If you are using the Terraform Registry approach:
+- put the same values directly into your own root module inputs for `module "hurdle_labs"`, or
+- use your own `terraform.tfvars` in that consumer repo.
 
 Populate at minimum:
 - `subscription_id`
@@ -172,34 +196,46 @@ Identity secret check:
 - If `app_secret_display_name = null`, Terraform defaults the secret name to `<app_display_name> Secret v1`.
 - `app_registration_client_secret_value` is sensitive and is stored in Terraform state. Protect `terraform.tfstate` and never commit it.
 
-### Step 3: Initialize Terraform
+### Step 4: Initialize Terraform
 ```bash
 terraform init
 ```
 
-### Step 4: Validate the Configuration
+### Step 5: Validate the Configuration
 ```bash
 terraform validate
 ```
 
-### Step 5 (Approach A): Generate and Apply the Entire Terraform Plan
+### Step 6 (Approach A): Generate and Apply the Entire Terraform Plan
 ```bash
 terraform plan -out tfplans/full.tfplan
 terraform apply tfplans/full.tfplan
 ```
 
-### Step 5 (Approach B): Generate and Apply Each Terraform Module Separately
+### Step 6 (Approach B): Generate and Apply Each Terraform Module Separately
 By default, the root stack plans/applies both modules. If you need to execute only one side, use `-target`.
 
-Infra module only:
+Infra module only (Git clone approach):
 ```bash
 terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/infra.tfplan
 terraform apply tfplans/infra.tfplan
 ```
 
-Identity module only:
+Infra module only (Terraform Registry approach):
+```bash
+terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_infra -out tfplans/infra.tfplan
+terraform apply tfplans/infra.tfplan
+```
+
+Identity module only (Git clone approach):
 ```bash
 terraform plan -target=module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
+terraform apply tfplans/identity.tfplan
+```
+
+Identity module only (Terraform Registry approach):
+```bash
+terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
 terraform apply tfplans/identity.tfplan
 ```
 
@@ -208,7 +244,7 @@ Important:
 - `-target` is for scoped/exception workflows. For routine changes, prefer full-stack `plan`/`apply`.
 - Identity-only execution requires `resource_group_id` from the infra module, so infra state/resources must already exist.
 
-### Step 6: Validate the `azure-hurdle-lab-infra` Deployment
+### Step 7: Validate the `azure-hurdle-lab-infra` Deployment
 
 1. Confirm that the deployed bridge VM is reachable and that guacws was configured and started correctly:
     ```bash
@@ -251,7 +287,7 @@ Important:
 You should see a GuacWS server welcome page like this:
    ![Screenshot of GuacWS holding page loaded in a web browser](./docs/images/screenshot-guacws-holding-page.png)
 
-### Step 7: Validate the `azure-hurdle-lab-identity` Deployment
+### Step 8: Validate the `azure-hurdle-lab-identity` Deployment
 
 Confirm that the service principal has both required role assignments:
 
@@ -311,9 +347,17 @@ Important:
 
 You may need to replace the bridge VM when re-specing it (for example, changing VM size/CPU/RAM) or when you need first-boot provisioning to run again on a fresh instance.
 
+Git clone approach:
 ```bash
 rm -f tfplans/replace-bridge-vm.tfplan
 terraform plan -target=module.azure_hurdle_lab_infra -replace=module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge -out tfplans/replace-bridge-vm.tfplan
+terraform apply tfplans/replace-bridge-vm.tfplan
+```
+
+Terraform Registry approach:
+```bash
+rm -f tfplans/replace-bridge-vm.tfplan
+terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_infra -replace=module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge -out tfplans/replace-bridge-vm.tfplan
 terraform apply tfplans/replace-bridge-vm.tfplan
 ```
 
@@ -325,3 +369,173 @@ After replacement, re-run the checks in `5) How to Validate the Deployment`.
 - If `terraform apply` fails, copy the exact error plus `az account show` output (redact IDs as needed) when requesting support.
 - Keep `terraform.tfvars` environment-specific and uncommitted.
 - Use `terraform.tfvars.example` as the reusable, documented template for operators.
+
+---
+
+## Appendix 1: Advanced Egress for Lab Machines
+
+### Why Enterprises Use Advanced Egress
+Some enterprise customers require outbound traffic controls beyond subnet NAT. Typical requirements include:
+- central outbound inspection
+- domain/IP allow-listing
+- egress logging and retention
+- mandatory routing through a security-managed firewall
+
+### Lab Machine Egress Modes Supported by This Module
+This module supports three egress modes for the `lab-machines` subnet:
+
+- `machines_egress_mode = "nat"|null`  
+  Default mode. Lab machines egress through module-managed NAT Gateway.
+  ```
+  Lab Machine VM
+  ⮡ snet-hurdle-lab-machines
+    ⮡ nat-hurdle-lab-machines
+      ⮡ pip-nat-hurdle-lab-machines
+        ⮡ Public Internet
+  ```
+- `machines_egress_mode = "firewall_module_provisioned"`  
+  Module creates an Azure Firewall in the same Hurdle labs resource group and routes lab-machines egress through it.
+  Baseline allow rules are included for typical endpoint behavior (DNS, NTP, ICMP, HTTP, HTTPS).
+  ```
+  Lab Machine VM
+  ⮡ snet-hurdle-lab-machines
+    ⮡ rt-hurdle-lab-machines-egress (0.0.0.0/0 ⭢ firewall private IP)
+      ⮡ fw-hurdle-lab-machines-egress (AzureFirewallSubnet)
+        ⮡ pip-fw-hurdle-lab-machines-egress
+          ⮡ Public Internet
+  ```
+
+- `machines_egress_mode = "firewall_customer_existing"`  
+  Module routes lab-machines egress to an existing customer-managed, **Bring-Your-Own (BYO)** firewall private IP.
+  ```
+  Lab Machine VM
+  ⮡ snet-hurdle-lab-machines
+    ⮡ machines_byo_route_table_* (or module-created machines route table)
+      ⮡ customer existing firewall private IP
+        ⮡ customer existing firewall public egress
+          ⮡ Public Internet
+  ```
+
+### Variables Used by Advanced Egress
+Related variables:
+- `machines_route_table_name`
+- `machines_managed_firewall_name`
+- `machines_managed_firewall_pip_name`
+- `machines_managed_firewall_subnet_cidr`
+- `machines_byo_firewall_private_ip`
+- `machines_byo_route_table_name`
+- `machines_byo_route_table_resource_group_name`
+
+### Bring-Your-Own (BYO) Firewall Topology Prerequisites
+
+Use this topology model when `machines_egress_mode = "firewall_customer_existing"`:
+
+```
+Azure Subscription
+├── Resource Group: rg-hurdle-labs
+│   ├── vnet-hurdle-lab
+│   │   ├── snet-hurdle-lab-bridge
+│   │   │   └── vm-hurdle-lab-bridge
+│   │   └── snet-hurdle-lab-machines
+│   │       └── Lab Machine VMs (ephemeral)
+│   │
+│   └── rt-hurdle-lab-machines-egress
+│       └── 0.0.0.0/0 -> <machines_byo_firewall_private_ip>
+│
+└── Resource Group: rg-your-existing-azure-assets
+    ├── pip-fw-existing
+    └── vnet-firewall-existing
+        └── AzureFirewallSubnet
+            └── fw-existing (Paste your Firewall's private IP into TF variable `machines_byo_firewall_private_ip`)
+
+Required cross-VNet links:
+- vnet-hurdle-lab <-> vnet-firewall-existing (bidirectional VNet peering)
+- both peerings: allowVirtualNetworkAccess=true, allowForwardedTraffic=true
+```
+
+Why this matters:
+- Lab machines are in `vnet-hurdle-lab`, but your existing firewall is often in another VNet.
+- Without peering, Azure cannot resolve the next hop to that firewall private IP.
+- Result: Lab Machine NIC effective route commonly shows `nextHopType = None` for the user default route.
+
+BYO checklist:
+- Route table on `snet-hurdle-lab-machines` sends `0.0.0.0/0` to `machines_byo_firewall_private_ip`.
+- BYO firewall private IP is reachable from `vnet-hurdle-lab` through peering.
+- BYO firewall has baseline allows for machines subnet source CIDR (DNS, NTP, ICMP, HTTP, HTTPS), unless your policy is stricter by design.
+
+Fast validation signals:
+- Lab Machine NIC effective route should show user route `0.0.0.0/0` with:
+    - `nextHopType = VirtualAppliance`
+    - `nextHopIpAddress = <machines_byo_firewall_private_ip>`
+- If `nextHopType = None`, fix peering/reachability first.
+- If effective route is correct but browsing still fails, inspect BYO firewall rule collections and deny logs.
+
+### CLI Runbook: Switching Egress Mode
+1. Update your variables file:
+   - `machines_egress_mode = "nat"` or
+   - `machines_egress_mode = "firewall_module_provisioned"` or
+   - `machines_egress_mode = "firewall_customer_existing"`
+2. Set mode-specific variables:
+   - for `firewall_module_provisioned`: set `machines_managed_firewall_*` variables as needed.
+   - for `firewall_customer_existing`: set `machines_byo_firewall_private_ip` and optionally `machines_byo_route_table_*`.
+3. Generate and apply the plan:
+   - Git clone approach:
+      ```bash
+      rm -f tfplans/machines-egress-switch.tfplan
+      terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/machines-egress-switch.tfplan
+      terraform apply tfplans/machines-egress-switch.tfplan
+      ```
+   - Terraform Registry approach:
+      ```bash
+      rm -f tfplans/machines-egress-switch.tfplan
+      terraform plan -target=module.hurdle_labs.module.azure_hurdle_lab_infra -out tfplans/machines-egress-switch.tfplan
+      terraform apply tfplans/machines-egress-switch.tfplan
+      ```
+4. Confirm Terraform outputs reflect your target state:
+   ```bash
+   terraform output -raw machines_egress_mode
+   terraform output machines_route_table_id
+   terraform output machines_nat_gateway_id
+   terraform output machines_managed_firewall_id
+   terraform output machines_managed_firewall_private_ip
+   ```
+
+### Azure Portal Verification Checklist
+After apply, verify in Azure portal:
+- `vnet-hurdle-lab` -> `snet-hurdle-lab-machines`:
+  - in `nat` mode: NAT gateway association is present.
+  - in firewall modes: route table association is present.
+- Route table (for firewall modes):
+  - default route `0.0.0.0/0` exists.
+  - next hop type is `Virtual appliance`.
+  - next hop IP matches managed firewall private IP or your BYO firewall private IP.
+- For `firewall_module_provisioned`:
+  - `AzureFirewallSubnet` exists.
+  - managed firewall and its public IP are in `Succeeded` state.
+  - firewall network rule collection `machines-baseline-network` exists with:
+    - `allow-dns` (TCP/UDP 53 to `*`)
+    - `allow-ntp` (UDP 123 to `*`)
+    - `allow-icmp` (ICMP to `*`)
+  - firewall application rule collection `machines-web-browsing` exists with:
+    - `allow-http-https` (HTTP 80 and HTTPS 443 to `*`)
+
+### Hurdle Conference Acceptance Tests
+After switching modes, run these acceptance checks:
+1. In Hurdle Dashboard, create a new test lab session (do not rely on an old cached session).
+2. Join as any Hurdle Lab User (trainer or learner) and confirm lab machine launches and reaches desktop.
+3. Confirm user internet egress through the configured firewall path:
+   - inside the user lab machine, open a web browser
+   - browse to a public HTTPS site (for example, `https://www.google.com`)
+   - confirm page load succeeds and normal outbound browsing works
+4. Confirm bridge connectivity remains healthy:
+   - browser can load `https://<bridge_public_fqdn>/`
+   - websocket session establishes in Hurdle Conference.
+5. Run at least one in-lab outbound test from the Lab Machine VM (for example DNS + HTTPS reachability) and confirm it behaves per policy.
+6. Re-run once with a second fresh Lab Machine VM to ensure behavior is repeatable.
+
+### Operational Caveats
+
+- Switching modes in-place is supported, but expect short-lived outbound interruption for active lab machines during route association changes.
+- `firewall_module_provisioned` requires free address space for `AzureFirewallSubnet`.
+- `firewall_customer_existing` requires a valid return path and firewall policy that permits required traffic.
+
