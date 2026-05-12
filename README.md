@@ -399,7 +399,7 @@ This module supports three egress modes for the `lab-machines` subnet:
   ⮡ snet-hurdle-lab-machines
     ⮡ rt-hurdle-lab-machines-egress (0.0.0.0/0 ⭢ firewall private IP)
       ⮡ fw-hurdle-lab-machines-egress (AzureFirewallSubnet)
-        ⮡ pip-hurdle-lab-machines-egress-firewall
+        ⮡ pip-fw-hurdle-lab-machines-egress
           ⮡ Public Internet
   ```
 

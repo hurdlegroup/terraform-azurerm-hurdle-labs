@@ -117,7 +117,7 @@ variable "machines_managed_firewall_name" {
 variable "machines_managed_firewall_pip_name" {
   description = "Azure Firewall public IP resource name when using firewall_module_provisioned mode."
   type        = string
-  default     = "pip-hurdle-lab-machines-egress-firewall"
+  default     = "pip-fw-hurdle-lab-machines-egress"
 }
 
 variable "machines_managed_firewall_subnet_cidr" {
