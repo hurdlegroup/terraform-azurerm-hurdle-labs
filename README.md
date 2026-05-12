@@ -105,8 +105,8 @@ Before provisioning the bridge VM, check that Hurdle's Community Compute Gallery
 
 Critical regional requirement:
 - **`hurdlePublicImages` must be available in the exact same region as your planned bridge VM.**
-- Example #1: If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
-- Example #2: You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
+- **Example #1:** If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
+- **Example #2:** You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
 
 If this step is skipped (or done in a different region), image lookup in `terraform.tfvars.example` will return no result and bridge VM provisioning will fail.
 
@@ -370,6 +370,8 @@ After replacement, re-run the checks in `5) How to Validate the Deployment`.
 - Keep `terraform.tfvars` environment-specific and uncommitted.
 - Use `terraform.tfvars.example` as the reusable, documented template for operators.
 
+---
+
 ## Appendix 1: Advanced Egress for Lab Machines
 
 ### Why Enterprises Use Advanced Egress
@@ -379,7 +381,7 @@ Some enterprise customers require outbound traffic controls beyond subnet NAT. T
 - egress logging and retention
 - mandatory routing through a security-managed firewall
 
-### Egress Modes Supported by This Module
+### Lab Machine Egress Modes Supported by This Module
 This module supports three egress modes for the `lab-machines` subnet:
 
 - `machines_egress_mode = "nat"|null`  
@@ -404,7 +406,7 @@ This module supports three egress modes for the `lab-machines` subnet:
   ```
 
 - `machines_egress_mode = "firewall_customer_existing"`  
-  Module routes lab-machines egress to an existing customer-managed, Bring-Your-Own (BYO) firewall private IP.
+  Module routes lab-machines egress to an existing customer-managed, **Bring-Your-Own (BYO)** firewall private IP.
   ```
   Lab Machine VM
   ⮡ snet-hurdle-lab-machines
@@ -423,6 +425,50 @@ Related variables:
 - `machines_byo_firewall_private_ip`
 - `machines_byo_route_table_name`
 - `machines_byo_route_table_resource_group_name`
+
+### Bring-Your-Own (BYO) Firewall Topology Prerequisites
+
+Use this topology model when `machines_egress_mode = "firewall_customer_existing"`:
+
+```
+Azure Subscription
+├── Resource Group: rg-hurdle-labs
+│   ├── vnet-hurdle-lab
+│   │   ├── snet-hurdle-lab-bridge
+│   │   │   └── vm-hurdle-lab-bridge
+│   │   └── snet-hurdle-lab-machines
+│   │       └── Lab Machine VMs (ephemeral)
+│   │
+│   └── rt-hurdle-lab-machines-egress
+│       └── 0.0.0.0/0 -> <machines_byo_firewall_private_ip>
+│
+└── Resource Group: rg-your-existing-azure-assets
+    ├── pip-fw-existing
+    └── vnet-firewall-existing
+        └── AzureFirewallSubnet
+            └── fw-existing (Paste your Firewall's private IP into TF variable `machines_byo_firewall_private_ip`)
+
+Required cross-VNet links:
+- vnet-hurdle-lab <-> vnet-firewall-existing (bidirectional VNet peering)
+- both peerings: allowVirtualNetworkAccess=true, allowForwardedTraffic=true
+```
+
+Why this matters:
+- Lab machines are in `vnet-hurdle-lab`, but your existing firewall is often in another VNet.
+- Without peering, Azure cannot resolve the next hop to that firewall private IP.
+- Result: Lab Machine NIC effective route commonly shows `nextHopType = None` for the user default route.
+
+BYO checklist:
+- Route table on `snet-hurdle-lab-machines` sends `0.0.0.0/0` to `machines_byo_firewall_private_ip`.
+- BYO firewall private IP is reachable from `vnet-hurdle-lab` through peering.
+- BYO firewall has baseline allows for machines subnet source CIDR (DNS, NTP, ICMP, HTTP, HTTPS), unless your policy is stricter by design.
+
+Fast validation signals:
+- Lab Machine NIC effective route should show user route `0.0.0.0/0` with:
+    - `nextHopType = VirtualAppliance`
+    - `nextHopIpAddress = <machines_byo_firewall_private_ip>`
+- If `nextHopType = None`, fix peering/reachability first.
+- If effective route is correct but browsing still fails, inspect BYO firewall rule collections and deny logs.
 
 ### CLI Runbook: Switching Egress Mode
 1. Update your variables file:
@@ -476,19 +522,20 @@ After apply, verify in Azure portal:
 ### Hurdle Conference Acceptance Tests
 After switching modes, run these acceptance checks:
 1. In Hurdle Dashboard, create a new test lab session (do not rely on an old cached session).
-2. Join as learner and confirm lab machine launches and reaches desktop.
-3. Confirm learner internet egress through the configured firewall path:
-   - inside the learner lab machine, open a web browser
+2. Join as any Hurdle Lab User (trainer or learner) and confirm lab machine launches and reaches desktop.
+3. Confirm user internet egress through the configured firewall path:
+   - inside the user lab machine, open a web browser
    - browse to a public HTTPS site (for example, `https://www.google.com`)
    - confirm page load succeeds and normal outbound browsing works
 4. Confirm bridge connectivity remains healthy:
    - browser can load `https://<bridge_public_fqdn>/`
    - websocket session establishes in Hurdle Conference.
-5. Run at least one in-lab outbound test from the learner VM (for example DNS + HTTPS reachability) and confirm it behaves per policy.
-6. Re-run once with a second fresh learner VM to ensure behavior is repeatable.
+5. Run at least one in-lab outbound test from the Lab Machine VM (for example DNS + HTTPS reachability) and confirm it behaves per policy.
+6. Re-run once with a second fresh Lab Machine VM to ensure behavior is repeatable.
 
 ### Operational Caveats
 
 - Switching modes in-place is supported, but expect short-lived outbound interruption for active lab machines during route association changes.
 - `firewall_module_provisioned` requires free address space for `AzureFirewallSubnet`.
 - `firewall_customer_existing` requires a valid return path and firewall policy that permits required traffic.
+

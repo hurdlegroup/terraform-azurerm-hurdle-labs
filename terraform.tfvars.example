@@ -40,12 +40,8 @@ bridge_vm_size = "Standard_D4s_v3"
 # - "firewall_customer_existing": subnet egress via an existing customer-managed firewall private IP.
 machines_egress_mode = "nat"
 
-# Optional: route table name used for machines subnet when machines_egress_mode is firewall_*.
-machines_route_table_name = "rt-hurdle-lab-machines-egress"
-
 # Optional: managed firewall settings used only when machines_egress_mode = "firewall_module_provisioned".
 machines_managed_firewall_name        = "fw-hurdle-lab-machines-egress"
-machines_managed_firewall_pip_name    = "pip-fw-hurdle-lab-machines-egress"
 machines_managed_firewall_subnet_cidr = "10.200.254.0/26"
 
 # Required only when machines_egress_mode = "firewall_customer_existing": private IP of existing customer firewall.
