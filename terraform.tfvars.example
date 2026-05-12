@@ -34,6 +34,28 @@ bridge_admin_username = "azureuser"
 # Set manually: bridge VM size (recommended minimum: Standard_D4s_v3).
 bridge_vm_size = "Standard_D4s_v3"
 
+# Optional: outbound egress profile for lab VMs in machines subnet.
+# - "nat" (default): subnet egress via NAT Gateway managed by this module.
+# - "firewall_module_provisioned": subnet egress via Azure Firewall created by this module.
+# - "firewall_customer_existing": subnet egress via an existing customer-managed firewall private IP.
+machines_egress_mode = "nat"
+
+# Optional: route table name used for machines subnet when machines_egress_mode is firewall_*.
+machines_route_table_name = "rt-hurdle-lab-machines-egress"
+
+# Optional: managed firewall settings used only when machines_egress_mode = "firewall_module_provisioned".
+machines_managed_firewall_name        = "fw-hurdle-lab-machines-egress"
+machines_managed_firewall_pip_name    = "pip-hurdle-lab-machines-egress-firewall"
+machines_managed_firewall_subnet_cidr = "10.200.254.0/26"
+
+# Required only when machines_egress_mode = "firewall_customer_existing": private IP of existing customer firewall.
+machines_byo_firewall_private_ip = null
+
+# Optional when machines_egress_mode = "firewall_customer_existing":
+# if provided, module uses this existing route table and associates machines subnet to it.
+machines_byo_route_table_name                = null
+machines_byo_route_table_resource_group_name = null
+
 # Set manually: technical contact email used for Let's Encrypt registration.
 bridge_technical_contact_email = "platform@example.com"
 

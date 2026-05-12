@@ -3,7 +3,7 @@
 Provisions Azure infrastructure for Hurdle Labs:
 - resource group
 - VNet and subnets
-- lab egress (NAT or firewall modes)
+- lab-machines egress (NAT or firewall modes)
 - bridge networking and NSG
 - persistent bridge VM
 

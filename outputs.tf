@@ -54,6 +54,26 @@ output "machines_nat_gateway_id" {
   value       = module.azure_hurdle_lab_infra.machines_nat_gateway_id
 }
 
+output "machines_egress_mode" {
+  description = "Effective egress mode for lab machines subnet."
+  value       = module.azure_hurdle_lab_infra.machines_egress_mode
+}
+
+output "machines_route_table_id" {
+  description = "Route table ID associated with machines subnet when firewall egress is enabled."
+  value       = module.azure_hurdle_lab_infra.machines_route_table_id
+}
+
+output "machines_managed_firewall_id" {
+  description = "ID of managed Azure Firewall when machines_egress_mode is firewall_module_provisioned."
+  value       = module.azure_hurdle_lab_infra.machines_managed_firewall_id
+}
+
+output "machines_managed_firewall_private_ip" {
+  description = "Private IP of managed Azure Firewall when machines_egress_mode is firewall_module_provisioned."
+  value       = module.azure_hurdle_lab_infra.machines_managed_firewall_private_ip
+}
+
 output "bridge_vm_id" {
   description = "ID of the persistent bridge VM."
   value       = module.azure_hurdle_lab_infra.bridge_vm_id

@@ -25,7 +25,27 @@ output "machines_subnet_id" {
 
 output "machines_nat_gateway_id" {
   description = "ID of the machines subnet NAT gateway."
-  value       = azurerm_nat_gateway.machines.id
+  value       = local.is_nat_mode ? azurerm_nat_gateway.machines[0].id : null
+}
+
+output "machines_egress_mode" {
+  description = "Effective egress mode for lab machines subnet."
+  value       = var.machines_egress_mode
+}
+
+output "machines_route_table_id" {
+  description = "Route table ID associated with machines subnet when firewall egress is enabled."
+  value       = local.is_nat_mode ? null : (local.use_byo_route_table ? data.azurerm_route_table.byo[0].id : azurerm_route_table.machines_egress[0].id)
+}
+
+output "machines_managed_firewall_id" {
+  description = "ID of managed Azure Firewall when machines_egress_mode is firewall_module_provisioned."
+  value       = local.is_managed_firewall_mode ? azurerm_firewall.managed[0].id : null
+}
+
+output "machines_managed_firewall_private_ip" {
+  description = "Private IP of managed Azure Firewall when machines_egress_mode is firewall_module_provisioned."
+  value       = local.is_managed_firewall_mode ? azurerm_firewall.managed[0].ip_configuration[0].private_ip_address : null
 }
 
 output "bridge_vm_id" {

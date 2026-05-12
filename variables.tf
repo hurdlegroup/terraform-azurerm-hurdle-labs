@@ -113,6 +113,54 @@ variable "machines_nat_name" {
   default     = "nat-hurdle-lab-machines"
 }
 
+variable "machines_egress_mode" {
+  description = "Outbound egress mode for lab machines subnet. Valid values: nat, firewall_module_provisioned, firewall_customer_existing."
+  type        = string
+  default     = "nat"
+}
+
+variable "machines_route_table_name" {
+  description = "Route table name for machines subnet when firewall egress is enabled."
+  type        = string
+  default     = "rt-hurdle-lab-machines-egress"
+}
+
+variable "machines_managed_firewall_name" {
+  description = "Azure Firewall name when using firewall_module_provisioned mode."
+  type        = string
+  default     = "fw-hurdle-lab-machines-egress"
+}
+
+variable "machines_managed_firewall_pip_name" {
+  description = "Azure Firewall public IP resource name when using firewall_module_provisioned mode."
+  type        = string
+  default     = "pip-hurdle-lab-machines-egress-firewall"
+}
+
+variable "machines_managed_firewall_subnet_cidr" {
+  description = "CIDR for AzureFirewallSubnet when using firewall_module_provisioned mode."
+  type        = string
+  default     = "10.200.254.0/26"
+}
+
+variable "machines_byo_firewall_private_ip" {
+  description = "Existing firewall private IP used when machines_egress_mode is firewall_customer_existing."
+  type        = string
+  default     = null
+}
+
+variable "machines_byo_route_table_name" {
+  description = "Existing route table name for machines subnet when using firewall_customer_existing. If null, module creates route table."
+  type        = string
+  default     = null
+}
+
+variable "machines_byo_route_table_resource_group_name" {
+  description = "Resource group containing machines_byo_route_table_name when using firewall_customer_existing."
+  type        = string
+  default     = null
+}
+
 variable "vnet_cidr" {
   description = "Address space CIDR for the virtual network."
   type        = string
