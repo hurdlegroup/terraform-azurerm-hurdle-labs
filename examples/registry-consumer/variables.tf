@@ -14,7 +14,7 @@ variable "resource_group_name" {
   type = string
 }
 
-variable "bridge_subdomain_slug" {
+variable "bridge_subdomain" {
   type = string
 }
 

@@ -6,7 +6,7 @@ module "hurdle_labs" {
   tenant_id                      = var.tenant_id
   location                       = var.location
   resource_group_name            = var.resource_group_name
-  bridge_subdomain_slug          = var.bridge_subdomain_slug
+  bridge_subdomain               = var.bridge_subdomain
   bridge_admin_username          = var.bridge_admin_username
   bridge_vm_size                 = var.bridge_vm_size
   bridge_technical_contact_email = var.bridge_technical_contact_email

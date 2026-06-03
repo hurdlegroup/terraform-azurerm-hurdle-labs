@@ -24,15 +24,27 @@ app_secret_display_name = null
 # Set manually: app secret lifetime in hours (6 months = 4380h).
 app_secret_lifetime = "4380h"
 
-# Set manually: lowercase letters/numbers/hyphens only.
-# Used as: <bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com
-bridge_subdomain_slug = "your-company"
+# Set manually: bridge public DNS label used as-is.
+# Used as: <bridge_subdomain>.AZURE_REGION.cloudapp.azure.com
+bridge_subdomain = "terraform-v2-hurdle-bridge"
 
 # Set manually: Linux username for SSH login on the bridge VM.
 bridge_admin_username = "azureuser"
 
 # Set manually: bridge VM size (recommended minimum: Standard_D4s_v3).
 bridge_vm_size = "Standard_D4s_v3"
+
+# Optional: bridge ingress profile.
+# - "direct_pip" (default): direct bridge ingress via pip-hurdle-lab-bridge.
+# - "appgw_waf": ingress via Application Gateway/WAF.
+bridge_ingress_mode = "direct_pip"
+
+# Required only when bridge_ingress_mode = "appgw_waf":
+# - bridge_appgw_tls_key_vault_secret_id must be a Key Vault certificate secret ID.
+# - bridge_appgw_key_vault_uami_id must be a User Assigned Managed Identity resource ID that has read access to that Key Vault secret.
+# - Retrieve via `az identity show --resource-group "<UAMI_RG>" --name "<UAMI_NAME>" --query id -o tsv`
+bridge_appgw_tls_key_vault_secret_id = null
+bridge_appgw_key_vault_uami_id       = null
 
 # Optional: outbound egress profile for lab VMs in machines subnet.
 # - "nat" (default): subnet egress via NAT Gateway managed by this module.
@@ -56,7 +68,7 @@ machines_byo_route_table_resource_group_name = null
 bridge_technical_contact_email = "platform@example.com"
 
 # Set manually: Alphanumeric secret that should've been automatically emailed to you after
-# you registered the Azure Lab Bridge's public domain (`*.<location>.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
+# you registered the Azure Lab Bridge's public domain (`*.AZURE_REGION.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
 bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"
 
 # Full Azure image ID for bridge VM source image.

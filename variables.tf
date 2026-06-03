@@ -13,8 +13,8 @@ variable "location" {
   type        = string
 }
 
-variable "bridge_subdomain_slug" {
-  description = "Slug used to generate bridge public DNS label: <slug>-hurdle-bridge.<region>.cloudapp.azure.com."
+variable "bridge_subdomain" {
+  description = "Bridge public DNS label used as-is for <bridge_subdomain>.<region>.cloudapp.azure.com."
   type        = string
 }
 
@@ -105,6 +105,72 @@ variable "bridge_pip_name" {
   description = "Public IP resource name assigned to the bridge VM."
   type        = string
   default     = "pip-hurdle-lab-bridge"
+}
+
+variable "bridge_ingress_mode" {
+  description = "Ingress mode for bridge traffic. Valid values: direct_pip, appgw_waf."
+  type        = string
+  default     = "direct_pip"
+}
+
+variable "bridge_edge_subnet_name" {
+  description = "Subnet name used for Application Gateway when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "snet-hurdle-lab-edge"
+}
+
+variable "bridge_edge_subnet_cidr" {
+  description = "CIDR for Application Gateway subnet when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "10.200.3.0/24"
+}
+
+variable "bridge_appgw_name" {
+  description = "Application Gateway name when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "appgw-hurdle-lab-bridge"
+}
+
+variable "bridge_appgw_pip_name" {
+  description = "Application Gateway public IP name when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "pip-appgw-hurdle-lab-bridge"
+}
+
+variable "bridge_appgw_sku_name" {
+  description = "Application Gateway SKU name when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "WAF_v2"
+}
+
+variable "bridge_appgw_sku_tier" {
+  description = "Application Gateway SKU tier when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "WAF_v2"
+}
+
+variable "bridge_appgw_capacity" {
+  description = "Application Gateway fixed capacity when bridge_ingress_mode is appgw_waf."
+  type        = number
+  default     = 2
+}
+
+variable "bridge_appgw_waf_policy_name" {
+  description = "WAF policy name attached to bridge Application Gateway when bridge_ingress_mode is appgw_waf."
+  type        = string
+  default     = "wafp-hurdle-lab-bridge"
+}
+
+variable "bridge_appgw_tls_key_vault_secret_id" {
+  description = "Key Vault certificate secret ID used by Application Gateway HTTPS listener in appgw_waf mode."
+  type        = string
+  default     = null
+}
+
+variable "bridge_appgw_key_vault_uami_id" {
+  description = "User-assigned managed identity ID attached to Application Gateway for Key Vault certificate access in appgw_waf mode."
+  type        = string
+  default     = null
 }
 
 variable "machines_nat_name" {
