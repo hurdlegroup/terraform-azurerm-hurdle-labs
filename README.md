@@ -187,6 +187,15 @@ Populate at minimum:
 - `bridge_ssh_public_key`
 - `bridge_ssh_allowed_cidrs`
 
+Important image note:
+- `bridge_ingress_mode = "direct_pip"` can use the standard `hurdleBridge` image line.
+- `bridge_ingress_mode = "appgw_waf"` is currently **beta** and requires a `hurdleBridge-beta` image version.
+- Retrieve the exact image IDs using the commands documented in [`terraform.tfvars.example`](./terraform.tfvars.example), for example:
+  ```bash
+  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.1.0')].id | [0]" -o tsv
+  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
+  ```
+
 Critical check:
 - `bridge_ssh_allowed_cidrs` must include your workplace VPN/public egress CIDR, or SSH to the bridge VM will fail.
 
@@ -534,6 +543,9 @@ After switching modes, run these acceptance checks:
 
 ## Appendix 2: Advanced Ingress for Lab Bridge
 
+**Beta status:** `bridge_ingress_mode = "appgw_waf"` is currently in beta.
+It requires using a beta bridge image from the `/images/hurdleBridge-beta/versions/...` image line rather than the standard `/images/hurdleBridge/versions/...` image line.
+
 ### Why Enterprises Use Advanced Ingress
 Some enterprise customers require bridge ingress through a managed edge control plane rather than direct VM public ingress. Typical requirements include:
 - central TLS termination
@@ -576,6 +588,7 @@ Set:
 - `bridge_ingress_mode = "appgw_waf"`
 - `bridge_appgw_tls_key_vault_secret_id` (required)
 - `bridge_appgw_key_vault_uami_id` (required)
+- `bridge_source_image_id` set to a beta bridge image ID from `/images/hurdleBridge-beta/versions/...` (required while this ingress profile remains in beta)
 
 Optional tuning variables:
 - `bridge_edge_subnet_name`
@@ -593,8 +606,13 @@ Optional tuning variables:
     bridge_ingress_mode = "appgw_waf"
     bridge_appgw_tls_key_vault_secret_id = "<KEY_VAULT_CERT_SECRET_ID>"
     bridge_appgw_key_vault_uami_id       = "/subscriptions/<SUB_ID>/resourceGroups/<RG_NAME>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<UAMI_NAME>"
+    bridge_source_image_id               = "<AZURE_IMAGE_ID_FROM_/images/hurdleBridge-beta/versions/...>"
     ```
-2. Plan/apply infra module only:
+2. Retrieve the beta bridge image ID using the Azure CLI pattern documented in [`terraform.tfvars.example`](./terraform.tfvars.example):
+    ```bash
+    az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
+    ```
+3. Plan/apply infra module only:
     ```bash
     rm -f tfplans/bridge-ingress-switch.tfplan
     terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/bridge-ingress-switch.tfplan
