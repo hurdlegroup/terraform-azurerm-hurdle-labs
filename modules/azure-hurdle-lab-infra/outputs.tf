@@ -48,6 +48,31 @@ output "machines_managed_firewall_private_ip" {
   value       = local.is_managed_firewall_mode ? azurerm_firewall.managed[0].ip_configuration[0].private_ip_address : null
 }
 
+output "bridge_ingress_mode" {
+  description = "Effective ingress mode for bridge traffic."
+  value       = var.bridge_ingress_mode
+}
+
+output "bridge_appgw_id" {
+  description = "ID of managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = local.is_appgw_ingress_mode ? azurerm_application_gateway.bridge[0].id : null
+}
+
+output "bridge_appgw_public_ip" {
+  description = "Public IPv4 address of managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = local.is_appgw_ingress_mode ? azurerm_public_ip.bridge_appgw[0].ip_address : null
+}
+
+output "bridge_appgw_public_fqdn" {
+  description = "Public DNS FQDN of managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = local.is_appgw_ingress_mode ? azurerm_public_ip.bridge_appgw[0].fqdn : null
+}
+
+output "bridge_appgw_waf_policy_id" {
+  description = "WAF policy ID attached to managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = local.is_appgw_ingress_mode ? azurerm_web_application_firewall_policy.bridge[0].id : null
+}
+
 output "bridge_vm_id" {
   description = "ID of the persistent bridge VM."
   value       = azurerm_linux_virtual_machine.bridge.id
@@ -64,8 +89,8 @@ output "bridge_public_ip_address" {
 }
 
 output "bridge_public_fqdn" {
-  description = "Public DNS FQDN assigned to the bridge VM public IP."
-  value       = azurerm_public_ip.bridge.fqdn
+  description = "Public bridge endpoint FQDN (bridge PIP in direct mode, App Gateway FQDN in appgw_waf mode)."
+  value       = local.bridge_public_fqdn
 }
 
 output "bridge_nsg_id" {

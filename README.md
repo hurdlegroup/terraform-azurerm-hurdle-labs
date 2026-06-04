@@ -72,22 +72,20 @@ This separation allows IAM-privileged operators to handle identity resources, wh
 ## Prerequisites
 
 ### Tooling Prerequisites
-- Azure CLI installed (`az`)
-- Terraform installed (`terraform`)
+- Terraform CLI installed (`terraform`): https://developer.hashicorp.com/terraform/tutorials/azure-get-started/install-cli
+- Azure CLI installed (`az`): https://learn.microsoft.com/en-us/cli/azure/install-azure-cli
 - Azure CLI authenticated and pointed at the correct subscription
-
-```bash
-az login
-az account list --output table
-az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
-az account show --output table
-```
-
-If you use multiple tenants:
-```bash
-az login --tenant "<TENANT_ID>"
-az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
-```
+    ```bash
+    az login
+    az account list --output table
+    az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
+    az account show --output table
+    ```
+- If you use multiple Azure tenants, then check/set your target Azure subscription:
+    ```bash
+    az login --tenant "<TENANT_ID>"
+    az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
+    ```
 
 ### Permission Prerequisites
 - Identity module execution requires permissions to:
@@ -157,7 +155,7 @@ terraform apply tfplans/full.tfplan
 If you only want console output and no log file, set only `TF_LOG`.
 
 ### Step 2: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
-1. Establish what `<bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com` domain you want to use.
+1. Establish what `<bridge_subdomain>.AZURE_REGION.cloudapp.azure.com` domain you want to use.
 2. Go to https://manage.hurdle.live/lab/bridges/new and enter the Bridge domain you want to use, with a WebSocket protocol prefix.
 For example:`wss://COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com`.
 3. The Hurdle server will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
@@ -180,7 +178,7 @@ Populate at minimum:
 - `location`
 - `resource_group_name`
 - `app_display_name`
-- `bridge_subdomain_slug`
+- `bridge_subdomain`
 - `bridge_admin_username`
 - `bridge_vm_size` (recommended minimum: `Standard_D4s_v3`)
 - `bridge_technical_contact_email`
@@ -188,6 +186,15 @@ Populate at minimum:
 - `bridge_source_image_id`
 - `bridge_ssh_public_key`
 - `bridge_ssh_allowed_cidrs`
+
+Important image note:
+- `bridge_ingress_mode = "direct_pip"` can use the standard `hurdleBridge` image line.
+- `bridge_ingress_mode = "appgw_waf"` is currently **beta** and requires a `hurdleBridge-beta` image version.
+- Retrieve the exact image IDs using the commands documented in [`terraform.tfvars.example`](./terraform.tfvars.example), for example:
+  ```bash
+  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.1.0')].id | [0]" -o tsv
+  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
+  ```
 
 Critical check:
 - `bridge_ssh_allowed_cidrs` must include your workplace VPN/public egress CIDR, or SSH to the bridge VM will fail.
@@ -363,13 +370,6 @@ terraform apply tfplans/replace-bridge-vm.tfplan
 
 After replacement, re-run the checks in `5) How to Validate the Deployment`.
 
-## Notes
-- Runtime behavior: the bridge VM is persistent, while lab VMs are ephemeral and created by Hurdle sessions.
-- First boot behavior: cloud-init writes `/etc/guacws/appsettings.Production.json`, sets `guacd:guacd` ownership, and runs `supervisorctl restart guacws`.
-- If `terraform apply` fails, copy the exact error plus `az account show` output (redact IDs as needed) when requesting support.
-- Keep `terraform.tfvars` environment-specific and uncommitted.
-- Use `terraform.tfvars.example` as the reusable, documented template for operators.
-
 ---
 
 ## Appendix 1: Advanced Egress for Lab Machines
@@ -388,32 +388,32 @@ This module supports three egress modes for the `lab-machines` subnet:
   Default mode. Lab machines egress through module-managed NAT Gateway.
   ```
   Lab Machine VM
-  ⮡ snet-hurdle-lab-machines
-    ⮡ nat-hurdle-lab-machines
-      ⮡ pip-nat-hurdle-lab-machines
-        ⮡ Public Internet
+  └─→ snet-hurdle-lab-machines
+      └─→ nat-hurdle-lab-machines
+          └─→ pip-nat-hurdle-lab-machines
+              └─→ Public Internet
   ```
 - `machines_egress_mode = "firewall_module_provisioned"`  
   Module creates an Azure Firewall in the same Hurdle labs resource group and routes lab-machines egress through it.
   Baseline allow rules are included for typical endpoint behavior (DNS, NTP, ICMP, HTTP, HTTPS).
   ```
   Lab Machine VM
-  ⮡ snet-hurdle-lab-machines
-    ⮡ rt-hurdle-lab-machines-egress (0.0.0.0/0 ⭢ firewall private IP)
-      ⮡ fw-hurdle-lab-machines-egress (AzureFirewallSubnet)
-        ⮡ pip-fw-hurdle-lab-machines-egress
-          ⮡ Public Internet
+  └─→ snet-hurdle-lab-machines
+      └─→ rt-hurdle-lab-machines-egress (0.0.0.0/0 ⭢ firewall private IP)
+          └─→ fw-hurdle-lab-machines-egress (AzureFirewallSubnet)
+              └─→ pip-fw-hurdle-lab-machines-egress
+                  └─→ Public Internet
   ```
 
 - `machines_egress_mode = "firewall_customer_existing"`  
   Module routes lab-machines egress to an existing customer-managed, **Bring-Your-Own (BYO)** firewall private IP.
   ```
   Lab Machine VM
-  ⮡ snet-hurdle-lab-machines
-    ⮡ machines_byo_route_table_* (or module-created machines route table)
-      ⮡ customer existing firewall private IP
-        ⮡ customer existing firewall public egress
-          ⮡ Public Internet
+  └─→ snet-hurdle-lab-machines
+      └─→ machines_byo_route_table_* (or module-created machines route table)
+          └─→ customer existing firewall private IP
+              └─→ customer existing firewall public egress
+                  └─→ Public Internet
   ```
 
 ### Variables Used by Advanced Egress
@@ -539,3 +539,104 @@ After switching modes, run these acceptance checks:
 - `firewall_module_provisioned` requires free address space for `AzureFirewallSubnet`.
 - `firewall_customer_existing` requires a valid return path and firewall policy that permits required traffic.
 
+---
+
+## Appendix 2: Advanced Ingress for Lab Bridge
+
+**Beta status:** `bridge_ingress_mode = "appgw_waf"` is currently in beta.
+It requires using a beta bridge image from the `/images/hurdleBridge-beta/versions/...` image line rather than the standard `/images/hurdleBridge/versions/...` image line.
+
+### Why Enterprises Use Advanced Ingress
+Some enterprise customers require bridge ingress through a managed edge control plane rather than direct VM public ingress. Typical requirements include:
+- central TLS termination
+- WAF policy enforcement
+- controlled exposure of the bridge backend
+- security team ownership of internet-facing entry points
+
+### Ingress Modes Supported by This Module
+- `bridge_ingress_mode = "direct_pip"` (default)
+  - Internet traffic reaches bridge via `pip-hurdle-lab-bridge`.
+- `bridge_ingress_mode = "appgw_waf"`
+  - Internet traffic reaches bridge via managed Application Gateway/WAF.
+  - Bridge VM remains private-backend behind App Gateway for HTTP/HTTPS app ingress.
+  - Bridge Public IP remains for SSH operations from `bridge_ssh_allowed_cidrs`.
+
+### Application Gateway/WAF Topology
+```text
+Azure Subscription
+└── Resource Group: rg-hurdle-labs
+    ├── Public IP: pip-appgw-hurdle-lab-bridge (public ingress)
+    ├── Web Application Firewall: wafp-hurdle-lab-bridge
+    ├── Network Security Group: nsg-hurdle-lab-bridge
+    │   ├── attached to vm-hurdle-lab-bridge
+    │   ├── allow SSH from bridge_ssh_allowed_cidrs
+    │   └── allow app ports only from snet-hurdle-lab-edge CIDR
+    └── vnet-hurdle-lab
+        ├── snet-hurdle-lab-edge
+        │   └── Application Gateway: appgw-hurdle-lab-bridge (WAF_v2)
+        └── snet-hurdle-lab-bridge
+            └── vm-hurdle-lab-bridge (private backend target)
+
+Public Internet
+└─→ HTTPS/WSS Traffic
+    └─→ Application Gateway/WAF
+        └─→ Bridge VM private IP
+```
+
+### Required Variables for `appgw_waf` Mode
+Set:
+- `bridge_ingress_mode = "appgw_waf"`
+- `bridge_appgw_tls_key_vault_secret_id` (required)
+- `bridge_appgw_key_vault_uami_id` (required)
+- `bridge_source_image_id` set to a beta bridge image ID from `/images/hurdleBridge-beta/versions/...` (required while this ingress profile remains in beta)
+
+Optional tuning variables:
+- `bridge_edge_subnet_name`
+- `bridge_edge_subnet_cidr`
+- `bridge_appgw_name`
+- `bridge_appgw_pip_name`
+- `bridge_appgw_sku_name`
+- `bridge_appgw_sku_tier`
+- `bridge_appgw_capacity`
+- `bridge_appgw_waf_policy_name`
+
+### CLI Runbook: Switching Bridge Ingress Mode
+1. Update variables:
+    ```bash
+    bridge_ingress_mode = "appgw_waf"
+    bridge_appgw_tls_key_vault_secret_id = "<KEY_VAULT_CERT_SECRET_ID>"
+    bridge_appgw_key_vault_uami_id       = "/subscriptions/<SUB_ID>/resourceGroups/<RG_NAME>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<UAMI_NAME>"
+    bridge_source_image_id               = "<AZURE_IMAGE_ID_FROM_/images/hurdleBridge-beta/versions/...>"
+    ```
+2. Retrieve the beta bridge image ID using the Azure CLI pattern documented in [`terraform.tfvars.example`](./terraform.tfvars.example):
+    ```bash
+    az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
+    ```
+3. Plan/apply infra module only:
+    ```bash
+    rm -f tfplans/bridge-ingress-switch.tfplan
+    terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/bridge-ingress-switch.tfplan
+    terraform apply tfplans/bridge-ingress-switch.tfplan
+    ```
+
+### Azure Portal Verification Checklist
+Verify in Azure portal:
+- `snet-hurdle-lab-edge` exists and is dedicated to App Gateway.
+- `appgw-hurdle-lab-bridge` is `Succeeded` and healthy backend status is green.
+- WAF policy is attached to App Gateway.
+- `pip-appgw-hurdle-lab-bridge` has a public IP/FQDN.
+- Bridge NSG ingress for ports 80/443 is restricted to edge subnet CIDR (not `*`).
+- Bridge VM remains SSH reachable only from `bridge_ssh_allowed_cidrs`.
+
+### Hurdle Conference Acceptance Tests
+1. Open `https://<bridge_appgw_public_fqdn>/` and confirm bridge holding page behavior.
+2. Create/start a fresh Hurdle session.
+3. Join from web/desktop app and confirm websocket session establishes.
+4. Confirm bridge admin SSH still works from allowed CIDRs.
+5. Confirm direct bridge public app ingress is not the primary path in `appgw_waf` mode.
+
+### Operational Caveats
+- `appgw_waf` requires free non-overlapping VNet address space for edge subnet.
+- Key Vault certificate secret ID must be valid and readable by the user-assigned managed identity attached to Application Gateway.
+- App Gateway/WAF provisioning is slower than direct PIP mode.
+- Bridge PIP is retained for SSH operations in this profile.

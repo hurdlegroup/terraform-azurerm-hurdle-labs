@@ -25,8 +25,8 @@ app_secret_display_name = null
 app_secret_lifetime = "4380h"
 
 # Set manually: lowercase letters/numbers/hyphens only.
-# Used as: <bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com
-bridge_subdomain_slug = "your-company"
+# Used as: <bridge_subdomain>.<azure_region>.cloudapp.azure.com
+bridge_subdomain = "YOUR-ORGANISATION-NAME-hurdle-bridge"
 
 # Set manually: Linux username for SSH login on the bridge VM.
 bridge_admin_username = "azureuser"
@@ -56,7 +56,7 @@ machines_byo_route_table_resource_group_name = null
 bridge_technical_contact_email = "platform@example.com"
 
 # Set manually: Alphanumeric secret that should've been automatically emailed to you after
-# you registered the Azure Lab Bridge's public domain (`*.<location>.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
+# you registered the Azure Lab Bridge's public domain (`*.AZURE_REGION.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
 bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"
 
 # Full Azure image ID for bridge VM source image.
