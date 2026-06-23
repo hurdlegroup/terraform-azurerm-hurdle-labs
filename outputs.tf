@@ -54,6 +54,51 @@ output "machines_nat_gateway_id" {
   value       = module.azure_hurdle_lab_infra.machines_nat_gateway_id
 }
 
+output "machines_egress_mode" {
+  description = "Effective egress mode for lab machines subnet."
+  value       = module.azure_hurdle_lab_infra.machines_egress_mode
+}
+
+output "machines_route_table_id" {
+  description = "Route table ID associated with machines subnet when firewall egress is enabled."
+  value       = module.azure_hurdle_lab_infra.machines_route_table_id
+}
+
+output "machines_managed_firewall_id" {
+  description = "ID of managed Azure Firewall when machines_egress_mode is firewall_module_provisioned."
+  value       = module.azure_hurdle_lab_infra.machines_managed_firewall_id
+}
+
+output "machines_managed_firewall_private_ip" {
+  description = "Private IP of managed Azure Firewall when machines_egress_mode is firewall_module_provisioned."
+  value       = module.azure_hurdle_lab_infra.machines_managed_firewall_private_ip
+}
+
+output "bridge_ingress_mode" {
+  description = "Effective ingress mode for bridge traffic."
+  value       = module.azure_hurdle_lab_infra.bridge_ingress_mode
+}
+
+output "bridge_appgw_id" {
+  description = "ID of managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = module.azure_hurdle_lab_infra.bridge_appgw_id
+}
+
+output "bridge_appgw_public_ip" {
+  description = "Public IPv4 address of managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = module.azure_hurdle_lab_infra.bridge_appgw_public_ip
+}
+
+output "bridge_appgw_public_fqdn" {
+  description = "Public DNS FQDN of managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = module.azure_hurdle_lab_infra.bridge_appgw_public_fqdn
+}
+
+output "bridge_appgw_waf_policy_id" {
+  description = "WAF policy ID attached to managed Application Gateway when bridge_ingress_mode is appgw_waf."
+  value       = module.azure_hurdle_lab_infra.bridge_appgw_waf_policy_id
+}
+
 output "bridge_vm_id" {
   description = "ID of the persistent bridge VM."
   value       = module.azure_hurdle_lab_infra.bridge_vm_id
@@ -75,7 +120,7 @@ output "bridge_public_ip_address" {
 }
 
 output "bridge_public_fqdn" {
-  description = "Public DNS FQDN assigned to the bridge VM public IP."
+  description = "Public bridge endpoint FQDN."
   value       = module.azure_hurdle_lab_infra.bridge_public_fqdn
 }
 

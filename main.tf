@@ -2,7 +2,7 @@ module "azure_hurdle_lab_infra" {
   source = "./modules/azure-hurdle-lab-infra"
 
   location                       = var.location
-  bridge_subdomain_slug          = var.bridge_subdomain_slug
+  bridge_subdomain               = var.bridge_subdomain
   bridge_admin_username          = var.bridge_admin_username
   bridge_ssh_public_key          = var.bridge_ssh_public_key
   bridge_ssh_allowed_cidrs       = var.bridge_ssh_allowed_cidrs
@@ -10,14 +10,33 @@ module "azure_hurdle_lab_infra" {
   bridge_lab_secret              = var.bridge_lab_secret
   bridge_source_image_id         = var.bridge_source_image_id
 
-  resource_group_name  = var.resource_group_name
-  vnet_name            = var.vnet_name
-  bridge_subnet_name   = var.bridge_subnet_name
-  machines_subnet_name = var.machines_subnet_name
-  bridge_vm_name       = var.bridge_vm_name
-  bridge_nsg_name      = var.bridge_nsg_name
-  bridge_pip_name      = var.bridge_pip_name
-  machines_nat_name    = var.machines_nat_name
+  resource_group_name                          = var.resource_group_name
+  vnet_name                                    = var.vnet_name
+  bridge_subnet_name                           = var.bridge_subnet_name
+  machines_subnet_name                         = var.machines_subnet_name
+  bridge_vm_name                               = var.bridge_vm_name
+  bridge_nsg_name                              = var.bridge_nsg_name
+  bridge_pip_name                              = var.bridge_pip_name
+  bridge_ingress_mode                          = var.bridge_ingress_mode
+  bridge_edge_subnet_name                      = var.bridge_edge_subnet_name
+  bridge_edge_subnet_cidr                      = var.bridge_edge_subnet_cidr
+  bridge_appgw_name                            = var.bridge_appgw_name
+  bridge_appgw_pip_name                        = var.bridge_appgw_pip_name
+  bridge_appgw_sku_name                        = var.bridge_appgw_sku_name
+  bridge_appgw_sku_tier                        = var.bridge_appgw_sku_tier
+  bridge_appgw_capacity                        = var.bridge_appgw_capacity
+  bridge_appgw_waf_policy_name                 = var.bridge_appgw_waf_policy_name
+  bridge_appgw_tls_key_vault_secret_id         = var.bridge_appgw_tls_key_vault_secret_id
+  bridge_appgw_key_vault_uami_id               = var.bridge_appgw_key_vault_uami_id
+  machines_nat_name                            = var.machines_nat_name
+  machines_egress_mode                         = var.machines_egress_mode
+  machines_route_table_name                    = var.machines_route_table_name
+  machines_managed_firewall_name               = var.machines_managed_firewall_name
+  machines_managed_firewall_pip_name           = var.machines_managed_firewall_pip_name
+  machines_managed_firewall_subnet_cidr        = var.machines_managed_firewall_subnet_cidr
+  machines_byo_firewall_private_ip             = var.machines_byo_firewall_private_ip
+  machines_byo_route_table_name                = var.machines_byo_route_table_name
+  machines_byo_route_table_resource_group_name = var.machines_byo_route_table_resource_group_name
 
   vnet_cidr            = var.vnet_cidr
   bridge_subnet_cidr   = var.bridge_subnet_cidr
