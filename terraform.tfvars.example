@@ -67,6 +67,15 @@ machines_byo_route_table_resource_group_name = null
 # Set manually: technical contact email used for Let's Encrypt registration.
 bridge_technical_contact_email = "platform@example.com"
 
+# Optional: explicit browser origins allowed to connect to guacws WebSockets.
+# Empty list means allow all origins.
+# Example:
+# bridge_allowed_origins = [
+#   "https://app.hurdle.live",
+#   "app://hurdle",
+# ]
+bridge_allowed_origins = []
+
 # Set manually: Alphanumeric secret that should've been automatically emailed to you after
 # you registered the Azure Lab Bridge's public domain (`*.AZURE_REGION.cloudapp.azure.com`) with Hurdle via https://manage.hurdle.live/lab/bridges/new
 bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"

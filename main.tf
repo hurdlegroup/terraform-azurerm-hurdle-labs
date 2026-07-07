@@ -8,6 +8,7 @@ module "azure_hurdle_lab_infra" {
   bridge_ssh_allowed_cidrs       = var.bridge_ssh_allowed_cidrs
   bridge_technical_contact_email = var.bridge_technical_contact_email
   bridge_lab_secret              = var.bridge_lab_secret
+  bridge_allowed_origins         = var.bridge_allowed_origins
   bridge_source_image_id         = var.bridge_source_image_id
 
   resource_group_name                          = var.resource_group_name

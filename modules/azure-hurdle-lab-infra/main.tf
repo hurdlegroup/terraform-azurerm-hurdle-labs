@@ -22,6 +22,9 @@ locals {
 
   guacws_appsettings = jsonencode({
     Server = local.guacws_server_settings
+    WebSocket = {
+      AllowedOrigins = var.bridge_allowed_origins
+    }
     Cipher = {
       Key = var.bridge_lab_secret
     }

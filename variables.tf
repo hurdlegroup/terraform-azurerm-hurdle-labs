@@ -44,6 +44,12 @@ variable "bridge_lab_secret" {
   sensitive   = true
 }
 
+variable "bridge_allowed_origins" {
+  description = "Origin list written into guacws WebSocket.AllowedOrigins. Empty list allows all origins."
+  type        = list(string)
+  default     = []
+}
+
 variable "bridge_source_image_id" {
   description = "Full Azure image resource ID used as source image for the bridge VM."
   type        = string
