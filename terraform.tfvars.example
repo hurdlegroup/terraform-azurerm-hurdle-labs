@@ -72,14 +72,14 @@ bridge_technical_contact_email = "platform@example.com"
 bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"
 
 # Full Azure image ID for bridge VM source image.
-# Retrieve from Azure CLI (searches all accessible resource groups):
-#   az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.4.0')].id | [0]" -o tsv
-bridge_source_image_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-000000000000/providers/Microsoft.Compute/galleries/hurdlePublicImages/images/hurdleBridge/versions/1.4.0"
+# If you want a specific version, retrieve Community Gallery Image ID from Azure CLI:
+#   az sig image-version show-community --public-gallery-name hurdle-ec6051c3-68bb-4651-a552-8255caddd442 --gallery-image-definition hurdleBridge --gallery-image-version 1.4.0 --location uksouth --query uniqueId -o tsv
+bridge_source_image_id = "/communityGalleries/hurdle-ec6051c3-68bb-4651-a552-8255caddd442/images/hurdleBridge/versions/latest"
 
 # Generate keypair if needed:
-#   ssh-keygen -t ed25519 -C "azure-hurdle-lab-bridge" -f ~/.ssh/azure_hurdle_lab_bridge_ed25519
-# Then copy public key value:
-#   cat ~/.ssh/azure_hurdle_lab_bridge_ed25519.pub
+#   ssh-keygen -t ed25519 -C "azure-hurdle-lab-bridge" -f ./azure_hurdle_lab_bridge_ed25519
+# Then copy public key value returned by:
+#   cat ./azure_hurdle_lab_bridge_ed25519.pub
 bridge_ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
 
 # Retrieve your current public IP CIDR (run while connected to workplace VPN if required):
