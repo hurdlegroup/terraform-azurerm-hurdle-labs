@@ -1,5 +1,5 @@
 module "azure_hurdle_lab_infra" {
-  source = "./modules/azure-hurdle-lab-infra"
+  source = "./submodules/azure-hurdle-lab-infra"
 
   location                       = var.location
   bridge_subdomain               = var.bridge_subdomain
@@ -51,7 +51,7 @@ module "azure_hurdle_lab_infra" {
 }
 
 module "azure_hurdle_lab_identity" {
-  source = "./modules/azure-hurdle-lab-identity"
+  source = "./submodules/azure-hurdle-lab-identity"
 
   subscription_id         = var.subscription_id
   app_display_name        = var.app_display_name
