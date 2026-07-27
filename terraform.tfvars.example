@@ -73,9 +73,8 @@ bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"
 
 # Full Azure image ID for bridge VM source image.
 # Retrieve from Azure CLI (searches all accessible resource groups):
-#   az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.1.0')].id | [0]" -o tsv
-#   az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
-bridge_source_image_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-000000000000/providers/Microsoft.Compute/galleries/hurdlePublicImages/images/hurdleBridge/versions/1.1.0"
+#   az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.4.0')].id | [0]" -o tsv
+bridge_source_image_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-000000000000/providers/Microsoft.Compute/galleries/hurdlePublicImages/images/hurdleBridge/versions/1.4.0"
 
 # Generate keypair if needed:
 #   ssh-keygen -t ed25519 -C "azure-hurdle-lab-bridge" -f ~/.ssh/azure_hurdle_lab_bridge_ed25519

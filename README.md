@@ -189,11 +189,10 @@ Populate at minimum:
 
 Important image note:
 - `bridge_ingress_mode = "direct_pip"` can use the standard `hurdleBridge` image line.
-- `bridge_ingress_mode = "appgw_waf"` is currently **beta** and requires a `hurdleBridge-beta` image version.
+- `bridge_ingress_mode = "appgw_waf"` requires Bridge `1.4.0` or later from the standard `hurdleBridge` image line.
 - Retrieve the exact image IDs using the commands documented in [`terraform.tfvars.example`](./terraform.tfvars.example), for example:
   ```bash
-  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.1.0')].id | [0]" -o tsv
-  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
+  az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.4.0')].id | [0]" -o tsv
   ```
 
 Critical check:
@@ -332,7 +331,106 @@ ___
 
 ## Troubleshooting
 
-### Partial Apply or Interrupted Run
+### When Azure and Terraform Get Out Of Sync
+Terraform works by comparing:
+- your Terraform configuration
+  - this means the `.tf` files and variable values you are currently asking Terraform to use
+  - for example: `main.tf`, `variables.tf`, `terraform.tfvars`, and the configuration Terraform evaluates when you run `terraform plan -out tfplans/full.tfplan`
+- your local Terraform state file (`terraform.tfstate`)
+  - this is Terraform's local record of what it believes it already manages
+- the real Azure resources
+  - this means what is actually provisioned right now in Azure
+  - in practice: what you can see in the Azure Portal, or via `az` CLI commands
+
+Those can drift apart during normal operator workflows. Common causes include:
+- a `terraform apply` failing or being interrupted part-way through
+- Azure resources being created, changed, or deleted manually in the portal or CLI
+- switching between different local worktrees or machines with stale local state
+- targeted plans/applies that intentionally update only part of the stack
+- deleting Azure resources first and expecting Terraform to infer what happened later
+
+Example:
+- your local `terraform.tfstate` might still say `pip-hurdle-lab-bridge` exists with a DNS label
+- but the Azure Portal might show that you deleted or changed it manually
+- Terraform is then working from stale local assumptions until you refresh or repair state
+
+When this happens, use the lightest repair command that matches the situation.
+
+#### 1. Refresh local state from Azure when the resources still exist
+Use this when:
+- Azure resources still exist
+- Terraform should continue managing them
+- local `terraform.tfstate` is stale but not fundamentally missing those resources
+
+Inspect first:
+```bash
+terraform plan -refresh-only
+```
+
+Then persist the refreshed view:
+```bash
+terraform apply -refresh-only
+```
+
+Why:
+- Terraform re-reads the real Azure resource state and writes the updated values into `terraform.tfstate`.
+- This does not intentionally create or destroy infrastructure.
+
+Concrete Example:
+- you changed a Public IP DNS label in Azure
+- Terraform still thinks the old label is present
+- `terraform apply -refresh-only` updates `terraform.tfstate` so Terraform stops reasoning from the old label
+
+#### 2. Import resources that exist in Azure but are missing from local state
+Use this when:
+- the Azure resource exists
+- Terraform says it wants to create it again
+- or Terraform reports `already exists` and asks for import
+
+Example:
+```bash
+terraform import module.azure_hurdle_lab_infra.azurerm_resource_group.hurdle_lab \
+  /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME>
+```
+
+Why:
+- `refresh-only` can update tracked resources, but it cannot discover completely missing resources and add them back into state.
+- `terraform import` tells Terraform which real Azure object a state address should manage.
+
+Concrete example:
+- the Azure Portal shows `rg-terraform-labs-2` still exists
+- but local `terraform.tfstate` no longer contains that resource
+- Terraform then tries to create the resource group again and fails with `already exists`
+- `terraform import ...` fixes that by reconnecting the real Azure object to the right Terraform address
+
+#### 3. Do not use `terraform state rm` as a substitute for deletion
+Use `terraform state rm` only when you intentionally want Terraform to forget a real resource while leaving it alive.
+
+Why:
+- It removes the object from state only.
+- It does not destroy anything in Azure.
+- It usually makes future drift more confusing unless you are deliberately handing that resource off to some other owner.
+
+Concrete example:
+- `terraform state rm module.azure_hurdle_lab_infra.azurerm_public_ip.bridge`
+- would make Terraform forget that Public IP
+- but the Public IP would still exist in Azure and continue costing money until you delete it separately
+
+#### Practical Repair Order
+When unsure, work in this order:
+1. `terraform init`
+2. `terraform plan -refresh-only`
+3. `terraform apply -refresh-only`
+4. `terraform plan`
+
+Then:
+- if Terraform now wants to recreate resources that already exist in Azure, use `terraform import`
+
+This gives you a simple mental model:
+- **refresh** when Azure still has the resource and Terraform just has stale information
+- **import** when Azure still has the resource but Terraform has forgotten it entirely
+
+### When a Terraform Operation is Interrupted Halfway Through
 Terraform is idempotent for resources tracked in state. If an apply fails midway, Terraform can usually continue from where it stopped.
 
 How this works:
@@ -349,8 +447,7 @@ Important:
 - Prefer generating a fresh plan when resuming. Do not rely on an old/stale plan file from before a failure.
 - If Azure resources exist but are missing from Terraform state, Terraform may try to recreate them and fail with "already exists". In that case, import the resource into state before re-applying.
 
-
-## How to Replace the Bridge VM
+### When You Need to Replace the Bridge VM
 
 You may need to replace the bridge VM when re-specing it (for example, changing VM size/CPU/RAM) or when you need first-boot provisioning to run again on a fresh instance.
 
@@ -369,6 +466,45 @@ terraform apply tfplans/replace-bridge-vm.tfplan
 ```
 
 After replacement, re-run the checks in `5) How to Validate the Deployment`.
+
+### When You Need to Decommission Azure Assets
+Use this section when your real intention is to remove Azure resources, not repair Terraform state.
+
+The key rule is:
+- if you want the Azure resource gone, destroy it through Terraform
+- do not delete it in the Azure Portal first and then try to make Terraform catch up afterwards
+
+Full stack destroy:
+```bash
+terraform plan -destroy -out tfplans/destroy.tfplan
+terraform apply tfplans/destroy.tfplan
+```
+
+Scoped destroy is also supported when you intentionally want to remove only one side of the stack.
+
+Infra module only (Git clone approach):
+```bash
+terraform plan -destroy -target=module.azure_hurdle_lab_infra -out tfplans/destroy-infra.tfplan
+terraform apply tfplans/destroy-infra.tfplan
+```
+
+Infra module only (Terraform Registry approach):
+```bash
+terraform plan -destroy -target=module.hurdle_labs.module.azure_hurdle_lab_infra -out tfplans/destroy-infra.tfplan
+terraform apply tfplans/destroy-infra.tfplan
+```
+
+Identity module only (Git clone approach):
+```bash
+terraform plan -destroy -target=module.azure_hurdle_lab_identity -out tfplans/destroy-identity.tfplan
+terraform apply tfplans/destroy-identity.tfplan
+```
+
+Identity module only (Terraform Registry approach):
+```bash
+terraform plan -destroy -target=module.hurdle_labs.module.azure_hurdle_lab_identity -out tfplans/destroy-identity.tfplan
+terraform apply tfplans/destroy-identity.tfplan
+```
 
 ---
 
@@ -543,9 +679,6 @@ After switching modes, run these acceptance checks:
 
 ## Appendix 2: Advanced Ingress for Lab Bridge
 
-**Beta status:** `bridge_ingress_mode = "appgw_waf"` is currently in beta.
-It requires using a beta bridge image from the `/images/hurdleBridge-beta/versions/...` image line rather than the standard `/images/hurdleBridge/versions/...` image line.
-
 ### Why Enterprises Use Advanced Ingress
 Some enterprise customers require bridge ingress through a managed edge control plane rather than direct VM public ingress. Typical requirements include:
 - central TLS termination
@@ -588,7 +721,7 @@ Set:
 - `bridge_ingress_mode = "appgw_waf"`
 - `bridge_appgw_tls_key_vault_secret_id` (required)
 - `bridge_appgw_key_vault_uami_id` (required)
-- `bridge_source_image_id` set to a beta bridge image ID from `/images/hurdleBridge-beta/versions/...` (required while this ingress profile remains in beta)
+- `bridge_source_image_id` set to a Bridge `1.4.0` or later image ID from `/images/hurdleBridge/versions/...`
 
 Optional tuning variables:
 - `bridge_edge_subnet_name`
@@ -606,11 +739,11 @@ Optional tuning variables:
     bridge_ingress_mode = "appgw_waf"
     bridge_appgw_tls_key_vault_secret_id = "<KEY_VAULT_CERT_SECRET_ID>"
     bridge_appgw_key_vault_uami_id       = "/subscriptions/<SUB_ID>/resourceGroups/<RG_NAME>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/<UAMI_NAME>"
-    bridge_source_image_id               = "<AZURE_IMAGE_ID_FROM_/images/hurdleBridge-beta/versions/...>"
+    bridge_source_image_id               = "<AZURE_IMAGE_ID_FROM_/images/hurdleBridge/versions/...>"
     ```
-2. Retrieve the beta bridge image ID using the Azure CLI pattern documented in [`terraform.tfvars.example`](./terraform.tfvars.example):
+2. Retrieve the bridge image ID using the Azure CLI pattern documented in [`terraform.tfvars.example`](./terraform.tfvars.example):
     ```bash
-    az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge-beta/versions/1.4.0')].id | [0]" -o tsv
+    az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.4.0')].id | [0]" -o tsv
     ```
 3. Plan/apply infra module only:
     ```bash
