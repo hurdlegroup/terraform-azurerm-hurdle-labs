@@ -1,18 +1,10 @@
-# azure-hurdle-lab-infra
+# Deploy Hurdle Labs Infrastructure in Azure
 
-Provisions Azure infrastructure for Hurdle Labs:
-- resource group
-- VNet and subnets
-- lab-machines egress (NAT or firewall modes)
-- bridge networking and NSG
-- persistent bridge VM
+Deploys the Azure resource group, networking, bridge VM, bridge ingress, and lab-machine egress for Hurdle Labs.
 
-## Usage
+Use this submodule directly when an Azure infrastructure operator deploys the lab separately from the Entra/RBAC administrator. It owns the infrastructure state and exposes `resource_group_id` for the identity-module hand-off.
 
-This submodule is part of `hurdlegroup/hurdle-labs/azurerm` and is typically consumed through the root module.
-
-If you use this submodule directly, you are responsible for wiring identity resources separately (app registration, service principal, and RBAC assignments).
-
-## Inputs and Outputs
-
-See the Terraform Registry Inputs/Outputs tabs for this submodule.
+For usage examples usage instructions see:
+- [`examples/infra-standard`](../../examples/infra-standard)
+- [`examples/infra-advanced-egress`](../../examples/infra-advanced-egress)
+- [`examples/infra-advanced-ingress`](../../examples/infra-advanced-ingress)
