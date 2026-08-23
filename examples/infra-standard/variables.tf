@@ -1,3 +1,13 @@
+variable "subscription_id" {
+  description = "Azure subscription ID used for subscription-scoped operations."
+  type        = string
+}
+
+variable "tenant_id" {
+  description = "Azure tenant ID used by azurerm and azuread providers."
+  type        = string
+}
+
 variable "location" {
   description = "Azure region where infrastructure resources are deployed."
   type        = string
