@@ -39,11 +39,11 @@ This is the recommended first state for split-permission deployments. It deploys
     ```
 7. Generate a Terraform plan:
     ```shell
-    terraform plan -out=infra.tfplan
+    terraform plan -out="infra.tfplan"
     ```
 8. If you are happy with the plan, apply it:
     ```shell
-    terraform apply infra.tfplan
+    terraform apply "infra.tfplan"
     ```
 9. Load the Bridge's URL (`bridge_public_fqdn` from `terraform.tfstate`) in your web browser. You should see a GuacWS server welcome page like this:
    ![Screenshot of GuacWS holding page loaded in a web browser](https://raw.githubusercontent.com/hurdlegroup/terraform-azurerm-hurdle-labs/6aecb2a11709ccac7a0e164b4a771fc490a241aa/docs/images/screenshot-guacws-holding-page.png)
@@ -52,38 +52,38 @@ This is the recommended first state for split-permission deployments. It deploys
 **Note:** these instructions use PowerShell not Bash, because that's been the most common use-case so far.
 
 1. Extract files from this `examples/infra-standard` documentation folder to a directory on your local machine.
-1. Set `terraform.tfvars` values to match existing Azure resources as closely as possible.
-7. Enable verbose Terraform logging and initialise Terraform:
+2. Set `terraform.tfvars` values to match existing Azure resources as closely as possible.
+3. Enable verbose Terraform logging and initialise Terraform:
     ```powershell
-    $env:TF_LOG = "TRACE"
+    $env:TF_LOG = "INFO"
     terraform init
     ```
-1. Import existing Azure resources into Terraform:
+4. Import existing Azure resources into Terraform:
     ```powershell
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_resource_group.hurdle_lab "{RESOURCE_GROUP_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_resource_group.hurdle_lab "{RESOURCE_GROUP_ID}"
     
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_virtual_network.hurdle_lab "{VIRTUAL_NETWORK_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_subnet.bridge "{BRIDGE_SUBNET_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_subnet.machines "{MACHINES_SUBNET_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_virtual_network.hurdle_lab "{VIRTUAL_NETWORK_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_subnet.bridge "{BRIDGE_SUBNET_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_subnet.machines "{MACHINES_SUBNET_ID}"
     
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_public_ip.machines_nat[0] "{MACHINES_NAT_PUBLIC_IP_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_nat_gateway.machines[0] "{MACHINES_NAT_GATEWAY_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_nat_gateway_public_ip_association.machines[0] "{MACHINES_NAT_GATEWAY_ID}|{MACHINES_NAT_PUBLIC_IP_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_subnet_nat_gateway_association.machines[0] "{MACHINES_SUBNET_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_public_ip.machines_nat[0] "{MACHINES_NAT_PUBLIC_IP_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_nat_gateway.machines[0] "{MACHINES_NAT_GATEWAY_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_nat_gateway_public_ip_association.machines[0] "{MACHINES_NAT_GATEWAY_ID}|{MACHINES_NAT_PUBLIC_IP_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_subnet_nat_gateway_association.machines[0] "{MACHINES_SUBNET_ID}"
     
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge "{BRIDGE_VM_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_public_ip.bridge "{BRIDGE_PUBLIC_IP_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_network_security_group.bridge "{BRIDGE_NSG_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_network_interface.bridge "{BRIDGE_NIC_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_network_interface_security_group_association.bridge "{BRIDGE_NIC_ID}|{BRIDGE_NSG_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_linux_virtual_machine.bridge "{BRIDGE_VM_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_public_ip.bridge "{BRIDGE_PUBLIC_IP_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_network_security_group.bridge "{BRIDGE_NSG_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_network_interface.bridge "{BRIDGE_NIC_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_network_interface_security_group_association.bridge "{BRIDGE_NIC_ID}|{BRIDGE_NSG_ID}"
     
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_network_security_rule.bridge_http "{BRIDGE_HTTP_NSG_RULE_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_network_security_rule.bridge_https[0] "{BRIDGE_HTTPS_NSG_RULE_ID}"
-    terraform import module.hurdle_labs.module.azure_hurdle_lab_infra.azurerm_network_security_rule.bridge_ssh "{BRIDGE_SSH_NSG_RULE_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_network_security_rule.bridge_http "{BRIDGE_HTTP_NSG_RULE_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_network_security_rule.bridge_https[0] "{BRIDGE_HTTPS_NSG_RULE_ID}"
+    terraform import module.hurdle_labs_infra.azurerm_network_security_rule.bridge_ssh "{BRIDGE_SSH_NSG_RULE_ID}"
     ```
-9. Generate a Terraform plan to confirm any existing differences with Azure. (It's fine if there are differences; this is just an informational step.)
+5. Generate a Terraform plan to confirm any existing differences with Azure. (It's fine if there are differences; this is just an informational step.)
     ```powershell
-    terraform -out infra.tfplan
+    terraform plan -out "infra.tfplan"
     # Output will be either
     # (1) Unchanged
     No changes. Your infrastructure matches the configuration.
@@ -91,12 +91,25 @@ This is the recommended first state for split-permission deployments. It deploys
     Terraform will perform the following actions:
     ...
     ```
-10. In `terraform.tfvars`, change `bridge_source_image_id` from `1.1.0` to `1.4.0`
-11. Generate Terraform plan to upgrade the bridge:
+6. In `terraform.tfvars`, change `bridge_source_image_id` from `1.1.0` to `1.4.0`
+7. Generate Terraform plan to upgrade the bridge:
     ```powershell
-    terraform plan -out infra.tfplan
+    terraform plan -out "infra.tfplan"
     ```
-12. Apply Terraform plan to upgrade the bridge:
+8. Apply Terraform plan to upgrade the bridge:
     ```powershell
-    terraform apply infra.tfplan
+    terraform apply "infra.tfplan"
     ```
+
+## How to Decommission Azure Assets
+Use this section when your real intention is to remove Azure resources, not repair Terraform state.
+
+The key rule is:
+- if you want the Azure resource gone, destroy it through Terraform
+- do not delete it in the Azure Portal first and then try to make Terraform catch up afterwards
+
+Simply run:
+```shell
+terraform plan -destroy -out "infra-destroy.tfplan"
+terraform apply "infra-destroy.tfplan"
+```
