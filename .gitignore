@@ -25,3 +25,4 @@ terraform.rc
 *.tfvars
 !*.example.tfvars
 *.tfplan
+.terraform.lock.hcl
