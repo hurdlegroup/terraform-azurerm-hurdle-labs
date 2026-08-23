@@ -1,17 +1,7 @@
-# azure-hurdle-lab-identity
+# Deploy Hurdle Labs App Registration in Azure
+Creates the Hurdle Labs Entra application registration, service principal, client secret, and Azure RBAC assignments.
 
-Provisions Azure Entra identity resources for Hurdle Labs:
-- app registration
-- service principal
-- app registration client secret
-- RBAC role assignments required by Hurdle
+Use this submodule directly after the infrastructure module has created the Hurdle Labs resource group. It is intended for an elevated Entra/RBAC operator and should normally have its own Terraform state.
 
-## Usage
-
-This submodule is part of `hurdlegroup/hurdle-labs/azurerm` and is typically consumed through the root module.
-
-If you use this submodule directly, ensure the infrastructure resource group already exists and pass its ID for role assignment scope.
-
-## Inputs and Outputs
-
-See the Terraform Registry Inputs/Outputs tabs for this submodule.
+## Usage Instructions
+- The complete runnable configuration is [`../../examples/identity-standard`](../../examples/identity-standard).
