@@ -24,15 +24,27 @@ app_secret_display_name = null
 # Set manually: app secret lifetime in hours (6 months = 4380h).
 app_secret_lifetime = "4380h"
 
-# Set manually: lowercase letters/numbers/hyphens only.
-# Used as: <bridge_subdomain>.<azure_region>.cloudapp.azure.com
-bridge_subdomain = "YOUR-ORGANISATION-NAME-hurdle-bridge"
+# Set manually: bridge public DNS label used as-is.
+# Used as: <bridge_subdomain>.AZURE_REGION.cloudapp.azure.com
+bridge_subdomain = "terraform-v2-hurdle-bridge"
 
 # Set manually: Linux username for SSH login on the bridge VM.
 bridge_admin_username = "azureuser"
 
 # Set manually: bridge VM size (recommended minimum: Standard_D4s_v3).
 bridge_vm_size = "Standard_D4s_v3"
+
+# Optional: bridge ingress profile.
+# - "direct_pip" (default): direct bridge ingress via pip-hurdle-lab-bridge.
+# - "appgw_waf": ingress via Application Gateway/WAF.
+bridge_ingress_mode = "direct_pip"
+
+# Required only when bridge_ingress_mode = "appgw_waf":
+# - bridge_appgw_tls_key_vault_secret_id must be a Key Vault certificate secret ID.
+# - bridge_appgw_key_vault_uami_id must be a User Assigned Managed Identity resource ID that has read access to that Key Vault secret.
+# - Retrieve via `az identity show --resource-group "<UAMI_RG>" --name "<UAMI_NAME>" --query id -o tsv`
+bridge_appgw_tls_key_vault_secret_id = null
+bridge_appgw_key_vault_uami_id       = null
 
 # Optional: outbound egress profile for lab VMs in machines subnet.
 # - "nat" (default): subnet egress via NAT Gateway managed by this module.
@@ -60,14 +72,14 @@ bridge_technical_contact_email = "platform@example.com"
 bridge_lab_secret = "LONG_ALPHANUMERIC_STRING_FROM_HURDLE_EMAIL"
 
 # Full Azure image ID for bridge VM source image.
-# Retrieve from Azure CLI (searches all accessible resource groups):
-#   az resource list --query "[?type=='Microsoft.Compute/galleries/images/versions' && ends_with(id, '/images/hurdleBridge/versions/1.1.0')].id | [0]" -o tsv
-bridge_source_image_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-000000000000/providers/Microsoft.Compute/galleries/hurdlePublicImages/images/hurdleBridge/versions/1.1.0"
+# If you want a specific version, retrieve Community Gallery Image ID from Azure CLI:
+#   az sig image-version show-community --public-gallery-name hurdle-ec6051c3-68bb-4651-a552-8255caddd442 --gallery-image-definition hurdleBridge --gallery-image-version 1.4.0 --location uksouth --query uniqueId -o tsv
+bridge_source_image_id = "/communityGalleries/hurdle-ec6051c3-68bb-4651-a552-8255caddd442/images/hurdleBridge/versions/latest"
 
 # Generate keypair if needed:
-#   ssh-keygen -t ed25519 -C "azure-hurdle-lab-bridge" -f ~/.ssh/azure_hurdle_lab_bridge_ed25519
-# Then copy public key value:
-#   cat ~/.ssh/azure_hurdle_lab_bridge_ed25519.pub
+#   ssh-keygen -t ed25519 -C "azure-hurdle-lab-bridge" -f ./azure_hurdle_lab_bridge_ed25519
+# Then copy public key value returned by:
+#   cat ./azure_hurdle_lab_bridge_ed25519.pub
 bridge_ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
 
 # Retrieve your current public IP CIDR (run while connected to workplace VPN if required):
