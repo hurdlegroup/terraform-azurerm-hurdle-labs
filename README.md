@@ -66,8 +66,9 @@ Hurdle Conference App
 └── The Web/Desktop app connects to your Azure Bridge VM (vm-hurdle-lab-bridge) via a WebSocket connection.
 ```
 
-For more advanced ingress/egress architectures supported by this module, see:
+For advanced ingress/egress deployment guidance, see:
 - [`examples/infra-advanced-ingress`](./examples/infra-advanced-ingress): Lab Bridge ingress through Application Gateway WAF.
+- [`examples/infra-byo-appgw`](./examples/infra-byo-appgw): Workaround for routing Lab Bridge traffic through an existing customer-managed Application Gateway.
 - [`examples/infra-advanced-egress`](./examples/infra-advanced-egress): Lab Machine egress through a firewall.
 
 
@@ -148,6 +149,8 @@ We'll then publish `hurdlePublicImages` in your region as soon as possible.
 2. Deploy `module.azure-hurdle-lab-identity` using [`examples/identity-standard`](./examples/identity-standard)
     - **Important:** You must apply `module.azure-hurdle-lab-infra` first because `module.azure-hurdle-lab-identity` needs the resource group to exist so it can assign the App Registration to it.
 
+**Note:** You can use [`examples/all-standard`](./examples/all-standard) if you are an Azure super-user who can deploy IAM and computing resources simultaneously in one CLI session.
+
 ---
 
 ## 🚨 Important: Azure App Secret Rotation 🚨
@@ -166,16 +169,6 @@ We'll then publish `hurdlePublicImages` in your region as soon as possible.
         - Start and join a Hurdle Lab Session from https://manage.hurdle.live/training-sessions to confirm that the new App secret works as expected.
 
 ---
-
-## Other Deployment Approaches
-
-### Import Existing Azure Assets into Terraform
-
-
-### Deploy App Registration & Resource Group Together
-- Use [`examples/all-standard`](./examples/all-standard) if you are an Azure super-user who can deploy IAM and computing resources simultaneously in one CLI session.
-
-___
 
 ## Troubleshooting
 
