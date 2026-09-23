@@ -6,6 +6,9 @@
 Deploy the Azure resources required for your organisation to use Hurdle Labs, with a strict separation between identity-plane provisioning and infrastructure-plane provisioning.
 
 ### Target Architecture
+
+Default Azure architecture created by this module:
+
 ```text
 Microsoft Azure Tenant (https://portal.azure.com)
 ├── App Registration (Service Principal): app-hurdle-lab
@@ -63,40 +66,66 @@ Hurdle Conference App
 └── The Web/Desktop app connects to your Azure Bridge VM (vm-hurdle-lab-bridge) via a WebSocket connection.
 ```
 
-### Module Structure (and Why)
-- `modules/azure-hurdle-lab-identity`: app registration, service principal, and RBAC assignments.
-- `modules/azure-hurdle-lab-infra`: resource group, networking, NAT, bridge NSG/public IP/NIC/VM.
+For advanced ingress/egress deployment guidance, see:
+- [`examples/infra-advanced-ingress`](./examples/infra-advanced-ingress): Lab Bridge ingress through Application Gateway WAF.
+- [`examples/infra-byo-appgw`](./examples/infra-byo-appgw): Workaround for routing Lab Bridge traffic through an existing customer-managed Application Gateway.
+- [`examples/infra-advanced-egress`](./examples/infra-advanced-egress): Lab Machine egress through a firewall.
 
-This separation allows IAM-privileged operators to handle identity resources, while infrastructure operators handle resource deployment without broad Entra permissions.
+
+---
 
 ## Prerequisites
 
+### Permission Prerequisites and Submodule Structure
+| Submodule | Documentation                                                                                               | Manages                                                      | Required Azure CLI Permissions                                                                                     |
+| --- |-------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| `azure-hurdle-lab-infra` | [GitHub](./modules/azure-hurdle-lab-infra), [Terraform Registry](./submodules/azure-hurdle-lab-infra)       | Resource group, networking, NAT, bridge NSG/public IP/NIC/VM | Create/update resource-group scoped network and compute resources                                                  |
+| `azure-hurdle-lab-identity` | [GitHub](./modules/azure-hurdle-lab-identity), [Terraform Registry](./submodules/azure-hurdle-lab-identity) | App registration, service principal, and RBAC assignments    | Create Entra app registrations and service principals. Assign RBAC roles at resource-group and subscription scope. |
+
+This separation allows IAM-privileged operators to handle identity resources, while infrastructure operators handle resource deployment without broad Entra permissions.
+
 ### Tooling Prerequisites
-- Azure CLI installed (`az`)
-- Terraform installed (`terraform`)
-- Azure CLI authenticated and pointed at the correct subscription
-
-```bash
-az login
-az account list --output table
-az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
-az account show --output table
-```
-
-If you use multiple tenants:
-```bash
-az login --tenant "<TENANT_ID>"
-az account set --subscription "<SUBSCRIPTION_ID_OR_NAME>"
-```
-
-### Permission Prerequisites
-- Identity module execution requires permissions to:
-  - Create Entra app registrations and service principals
-  - Assign RBAC roles at resource-group and subscription scope
-- Infra module execution requires permissions to:
-  - Create/update resource-group scoped network and compute resources
-
-In short: identity-plane permissions and infrastructure-plane permissions can be delegated to different operator roles.
+1. Install Azure CLI if you don't already have it ([Microsoft Documentation](https://developer.hashicorp.com/terraform/tutorials/azure-get-started/install-cli)): 
+   - In Linux Shell
+       ```shell
+       curl -fsSL 'https://azurecliprod.blob.core.windows.net/$root/deb_install.sh' | sudo bash
+       ```
+   - In Windows Terminal
+       ```powershell
+       winget install --exact --id Microsoft.AzureCLI
+       ```
+2. Install Terraform CLI if you don't already have it ([Terraform Documentation](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)):
+    - In Linux Shell
+        ```shell
+        sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+        gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+        sudo apt update
+        sudo apt-get install terraform
+        # Optionally enable verbose logging when troubleshooting:
+        echo 'export TF_LOG=INFO' >> ~/.bashrc
+        source ~/.bashrc
+        ```
+    - In Windows Terminal
+        ```powershell
+        winget install --exact --id Hashicorp.Terraform
+        # Optionally enable verbose logging when troubleshooting:
+        $env:TF_LOG = "INFO"
+        ```
+3. Terraform depends CLI on Git. Install it you don't already have it ([Git Documentation](https://git-scm.com/install)):
+    - In Linux Shell
+        ```shell
+        sudo apt update && sudo apt-get install git
+        ```
+    - In Windows Terminal
+        ```powershell
+        winget install --exact --id Git.Git
+        ```
+4. Login to Azure CLI and select the Azure subscription that will house your Hurdle Labs resources 
+    ```bash
+    # Forces Azure CLI to login via web browser instead of potentially tripping over local credentials:
+    az login --use-device-code
+    ```
 
 ### Hurdle Community Compute Gallery Prerequisites
 Before provisioning the bridge VM, check that Hurdle's Community Compute Gallery is available in your target Azure region:
@@ -105,168 +134,22 @@ Before provisioning the bridge VM, check that Hurdle's Community Compute Gallery
 
 Critical regional requirement:
 - **`hurdlePublicImages` must be available in the exact same region as your planned bridge VM.**
-- Example #1: If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
-- Example #2: You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
+- **Example #1:** If you set Terraform variable `location = "uksouth"`, then `hurdlePublicImages` must be available in Azure's `UK South` region before you can deploy.
+- **Example #2:** You gain learners in a new region and want to reduce lab latency for them. Before your can deploy Hurdle Labs in this new region (e.g. `location = "northeurope"`), `hurdlePublicImages` must be available Azure's `North Europe` region.
 
-If this step is skipped (or done in a different region), image lookup in `terraform.tfvars.example` will return no result and bridge VM provisioning will fail.
+If this step is skipped (or done in a different region), image will return no result and bridge VM provisioning will fail.
 
 **If `hurdlePublicImages` is not currently available in your target region, then please open a support ticket with us**: https://help.customer.hurdle.live/servicedesk/customer/portal/2/create/44.
 We'll then publish `hurdlePublicImages` in your region as soon as possible.
 
-## Deployment Runbook
+---
 
-### Step 0: Enable Terraform Logging (Optional but Recommended)
-To see progress details during slower Terraform operations, prefix commands with `TF_LOG=INFO`:
+## Standard Deployment Approach
+1. Deploy `module.azure-hurdle-lab-infra` using [`examples/infra-standard`](./examples/infra-standard)
+2. Deploy `module.azure-hurdle-lab-identity` using [`examples/identity-standard`](./examples/identity-standard)
+    - **Important:** You must apply `module.azure-hurdle-lab-infra` first because `module.azure-hurdle-lab-identity` needs the resource group to exist so it can assign the App Registration to it.
 
-```bash
-TF_LOG=INFO terraform plan -out tfplans/full.tfplan
-TF_LOG=INFO terraform apply tfplans/full.tfplan
-```
-
-You can also set verbose logging as your shell default so all Terraform commands inherit it:
-
-```bash
-echo 'export TF_LOG=INFO' >> ~/.bashrc
-echo 'export TF_LOG_PATH="$HOME/terraform.log"' >> ~/.bashrc
-source ~/.bashrc
-
-# With `export TF_LOG=INFO` now being global, normal `terraform ...` commands will output verbose logs:
-terraform plan -out tfplans/full.tfplan
-terraform apply tfplans/full.tfplan
-```
-
-If you only want console output and no log file, set only `TF_LOG`.
-
-### Step 1: Plan a Bridge Web Domain and Retrieve a Hurdle Bridge Secret
-1. Establish what `<bridge_subdomain_slug>-hurdle-bridge.<location>.cloudapp.azure.com` domain you want to use.
-2. Go to https://manage.hurdle.live/lab/bridges/new and enter the Bridge domain you want to use, with a WebSocket protocol prefix.
-For example:`wss://COMPANY-NAME-hurdle-bridge.AZURE_REGION.cloudapp.azure.com`.
-3. The Hurdle server will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
-
-### Step 2: Copy and Populate `terraform.tfvars`
-In your cloned project directory:
-
-```bash
-cp terraform.tfvars.example terraform.tfvars
-```
-
-Populate at minimum:
-- `subscription_id`
-- `tenant_id`
-- `location`
-- `resource_group_name`
-- `app_display_name`
-- `bridge_subdomain_slug`
-- `bridge_admin_username`
-- `bridge_vm_size` (recommended minimum: `Standard_D4s_v3`)
-- `bridge_technical_contact_email`
-- `bridge_lab_secret`
-- `bridge_source_image_id`
-- `bridge_ssh_public_key`
-- `bridge_ssh_allowed_cidrs`
-
-Critical check:
-- `bridge_ssh_allowed_cidrs` must include your workplace VPN/public egress CIDR, or SSH to the bridge VM will fail.
-
-Identity secret check:
-- If `app_secret_display_name = null`, Terraform defaults the secret name to `<app_display_name> Secret v1`.
-- `app_registration_client_secret_value` is sensitive and is stored in Terraform state. Protect `terraform.tfstate` and never commit it.
-
-### Step 3: Initialize Terraform
-```bash
-terraform init
-```
-
-### Step 4: Validate the Configuration
-```bash
-terraform validate
-```
-
-### Step 5 (Approach A): Generate and Apply the Entire Terraform Plan
-```bash
-terraform plan -out tfplans/full.tfplan
-terraform apply tfplans/full.tfplan
-```
-
-### Step 5 (Approach B): Generate and Apply Each Terraform Module Separately
-By default, the root stack plans/applies both modules. If you need to execute only one side, use `-target`.
-
-Infra module only:
-```bash
-terraform plan -target=module.azure_hurdle_lab_infra -out tfplans/infra.tfplan
-terraform apply tfplans/infra.tfplan
-```
-
-Identity module only:
-```bash
-terraform plan -target=module.azure_hurdle_lab_identity -out tfplans/identity.tfplan
-terraform apply tfplans/identity.tfplan
-```
-
-Important:
-- If you apply each module separately, you _must_ apply `module.azure_hurdle_lab_infra` first because `module.azure_hurdle_lab_identity` needs the resource group to exist so it can assign the App Registration to it. 
-- `-target` is for scoped/exception workflows. For routine changes, prefer full-stack `plan`/`apply`.
-- Identity-only execution requires `resource_group_id` from the infra module, so infra state/resources must already exist.
-
-### Step 6: Validate the `azure-hurdle-lab-infra` Deployment
-
-1. Confirm that the deployed bridge VM is reachable and that guacws was configured and started correctly:
-    ```bash
-    > ssh "$(terraform output -raw bridge_admin_username)"@"$(terraform output -raw bridge_public_ip_address)" -i ~/.ssh/azure_hurdle_lab_bridge_ed25519
-   
-    # If Terraform complains that some outputs aren't readable, then re-sync state by running:
-    > terraform apply -refresh-only
-    Would you like to update the Terraform state to reflect these detected changes?
-    Terraform will write these changes to the state without modifying any real infrastructure.
-    There is no undo. Only 'yes' will be accepted to confirm.
-    Enter a value: YES
-    # Then retry the ssh command above and continue to the validation steps below...
-
-    > sudo apt install jq
-    > sudo cat /etc/guacws/appsettings.Production.json | jq
-    {
-        "Cipher": {
-            "Key": "..."
-        },
-        "Server": {
-            "HttpPort": 80,
-            "HttpsPort": 443,
-            "LetsEncrypt": {
-                "Domains": [
-                    "..."
-                ],
-                "EmailAddress": "..."
-            }
-        }
-    }
-
-    > sudo supervisorctl status guacws
-    guacws   RUNNING   pid 1025, uptime 0:01:30
-    ```
-   - Expected result:
-     - `/etc/guacws/appsettings.Production.json` exists with your configured domain, email, and lab secret values.
-     - `supervisorctl status guacws` reports `RUNNING`.
-
-2. Load the Bridge's URL (`bridge_public_fqdn` from `./terraform.tfstate`) in your web browser.
-You should see a GuacWS server welcome page like this:
-   ![Screenshot of GuacWS holding page loaded in a web browser](./docs/images/screenshot-guacws-holding-page.png)
-
-### Step 7: Validate the `azure-hurdle-lab-identity` Deployment
-
-Confirm that the service principal has both required role assignments:
-
-```bash
-SP_OBJECT_ID="$(terraform output -raw service_principal_object_id)"
-RG_ID="$(terraform output -raw resource_group_id)"
-SUB_ID="$(az account show --query id -o tsv)"
-
-az role assignment list --assignee-object-id "$SP_OBJECT_ID" --scope "$RG_ID" -o table
-az role assignment list --assignee-object-id "$SP_OBJECT_ID" --scope "/subscriptions/$SUB_ID" -o table
-```
-
-Expected result:
-- Resource group scope output includes role `Contributor` on `/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME>`.
-- Subscription scope output includes role `Quota Request Operator` on `/subscriptions/<SUBSCRIPTION_ID>`.
+**Note:** You can use [`examples/all-standard`](./examples/all-standard) if you are an Azure super-user who can deploy IAM and computing resources simultaneously in one CLI session.
 
 ---
 
@@ -279,17 +162,116 @@ Expected result:
 - Hurdle sends App secret expiry alerts 30/14/7/5/3/1 days before expiry and also shows expiry banners at the top of every page in https://manage.hurdle.live.
 - Hurdle cannot rotate your Azure App secret on your behalf; only your Azure administrators can do that.
 - **Strongly recommended:**
-    1. Create a policy document for rotating your Azure App secret on a regular schedule e.g. `SOP: Rotate Azure Hurdle App Secret Every 3/6/9/12 Months`.
-    2. Share this secret-rotation document widely within your IT team, so everyone knows how to do it, and you don't inadvertently have a Labs Training outage simply because a sysadmin was ill that day.
-    3. Auto-schedule a `Rotate Hurdle Azure App Secret` task in line with your chosen App secret lifetime. This task should instruct the Azure admin to:
-        1. Generate a new App secret in https://portal.azure.com and then paste it into https://manage.hurdle.live/lab/providers.
-        2. Start and join a Hurdle Lab Session from https://manage.hurdle.live/training-sessions to confirm that the new App secret works as expected.
+    - Create a policy document for rotating your Azure App secret on a regular schedule e.g. `SOP: Rotate Azure Hurdle App Secret Every 3/6/9/12 Months`.
+    - Share this secret-rotation document widely within your IT team, so everyone knows how to do it, and you don't inadvertently have a Labs Training outage simply because a sysadmin was ill that day.
+    - Auto-schedule a `Rotate Hurdle Azure App Secret` task in line with your chosen App secret lifetime. This task should instruct the Azure admin to:
+        - Generate a new App secret in https://portal.azure.com and then paste it into https://manage.hurdle.live/lab/providers.
+        - Start and join a Hurdle Lab Session from https://manage.hurdle.live/training-sessions to confirm that the new App secret works as expected.
 
-___
+---
 
 ## Troubleshooting
 
-### Partial Apply or Interrupted Run
+### When Azure and Terraform Get Out Of Sync
+Terraform works by comparing:
+- your Terraform configuration
+    - this means the `.tf` files and variable values you are currently asking Terraform to use
+    - for example: `main.tf`, `variables.tf`, `terraform.tfvars`, and the configuration Terraform evaluates when you run `terraform plan -out tfplans/full.tfplan`
+- your local Terraform state file (`terraform.tfstate`)
+    - this is Terraform's local record of what it believes it already manages
+- the real Azure resources
+    - this means what is actually provisioned right now in Azure
+    - in practice: what you can see in the Azure Portal, or via `az` CLI commands
+
+Those can drift apart during normal operator workflows. Common causes include:
+- a `terraform apply` failing or being interrupted part-way through
+- Azure resources being created, changed, or deleted manually in the portal or CLI
+- switching between different local worktrees or machines with stale local state
+- targeted plans/applies that intentionally update only part of the stack
+- deleting Azure resources first and expecting Terraform to infer what happened later
+
+Example:
+- your local `terraform.tfstate` might still say `pip-hurdle-lab-bridge` exists with a DNS label
+- but the Azure Portal might show that you deleted or changed it manually
+- Terraform is then working from stale local assumptions until you refresh or repair state
+
+When this happens, use the lightest repair command that matches the situation.
+
+#### 1. Refresh local state from Azure when the resources still exist
+Use this when:
+- Azure resources still exist
+- Terraform should continue managing them
+- local `terraform.tfstate` is stale but not fundamentally missing those resources
+
+Inspect first:
+```bash
+terraform plan -refresh-only
+```
+
+Then persist the refreshed view:
+```bash
+terraform apply -refresh-only
+```
+
+Why:
+- Terraform re-reads the real Azure resource state and writes the updated values into `terraform.tfstate`.
+- This does not intentionally create or destroy infrastructure.
+
+Concrete Example:
+- you changed a Public IP DNS label in Azure
+- Terraform still thinks the old label is present
+- `terraform apply -refresh-only` updates `terraform.tfstate` so Terraform stops reasoning from the old label
+
+#### 2. Import resources that exist in Azure but are missing from local state
+Use this when:
+- the Azure resource exists
+- Terraform says it wants to create it again
+- or Terraform reports `already exists` and asks for import
+
+Example:
+```bash
+terraform import module.azure_hurdle_lab_infra.azurerm_resource_group.hurdle_lab \
+  /subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP_NAME>
+```
+
+Why:
+- `refresh-only` can update tracked resources, but it cannot discover completely missing resources and add them back into state.
+- `terraform import` tells Terraform which real Azure object a state address should manage.
+
+Concrete example:
+- the Azure Portal shows `rg-terraform-labs-2` still exists
+- but local `terraform.tfstate` no longer contains that resource
+- Terraform then tries to create the resource group again and fails with `already exists`
+- `terraform import ...` fixes that by reconnecting the real Azure object to the right Terraform address
+
+#### 3. Do not use `terraform state rm` as a substitute for deletion
+Use `terraform state rm` only when you intentionally want Terraform to forget a real resource while leaving it alive.
+
+Why:
+- It removes the object from state only.
+- It does not destroy anything in Azure.
+- It usually makes future drift more confusing unless you are deliberately handing that resource off to some other owner.
+
+Concrete example:
+- `terraform state rm module.azure_hurdle_lab_infra.azurerm_public_ip.bridge`
+- would make Terraform forget that Public IP
+- but the Public IP would still exist in Azure and continue costing money until you delete it separately
+
+#### Practical Repair Order
+When unsure, work in this order:
+1. `terraform init`
+2. `terraform plan -refresh-only`
+3. `terraform apply -refresh-only`
+4. `terraform plan`
+
+Then:
+- if Terraform now wants to recreate resources that already exist in Azure, use `terraform import`
+
+This gives you a simple mental model:
+- **refresh** when Azure still has the resource and Terraform just has stale information
+- **import** when Azure still has the resource but Terraform has forgotten it entirely
+
+### When a Terraform Operation is Interrupted Halfway Through
 Terraform is idempotent for resources tracked in state. If an apply fails midway, Terraform can usually continue from where it stopped.
 
 How this works:
@@ -298,30 +280,10 @@ How this works:
 
 Resume safely:
 ```bash
-terraform plan -out tfplans/resume.tfplan
-terraform apply tfplans/resume.tfplan
+terraform plan -out resume.tfplan
+terraform apply resume.tfplan
 ```
 
 Important:
 - Prefer generating a fresh plan when resuming. Do not rely on an old/stale plan file from before a failure.
 - If Azure resources exist but are missing from Terraform state, Terraform may try to recreate them and fail with "already exists". In that case, import the resource into state before re-applying.
-
-
-## How to Replace the Bridge VM
-
-You may need to replace the bridge VM when re-specing it (for example, changing VM size/CPU/RAM) or when you need first-boot provisioning to run again on a fresh instance.
-
-```bash
-rm -f tfplans/replace-bridge-vm.tfplan
-terraform plan -target=module.azure_hurdle_lab_infra -replace=module.azure_hurdle_lab_infra.azurerm_linux_virtual_machine.bridge -out tfplans/replace-bridge-vm.tfplan
-terraform apply tfplans/replace-bridge-vm.tfplan
-```
-
-After replacement, re-run the checks in `5) How to Validate the Deployment`.
-
-## Notes
-- Runtime behavior: the bridge VM is persistent, while lab VMs are ephemeral and created by Hurdle sessions.
-- First boot behavior: cloud-init writes `/etc/guacws/appsettings.Production.json`, sets `guacd:guacd` ownership, and runs `supervisorctl restart guacws`.
-- If `terraform apply` fails, copy the exact error plus `az account show` output (redact IDs as needed) when requesting support.
-- Keep `terraform.tfvars` environment-specific and uncommitted.
-- Use `terraform.tfvars.example` as the reusable, documented template for operators.

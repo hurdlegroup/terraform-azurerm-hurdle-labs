@@ -33,6 +33,18 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Check example output scope
+        shell: bash
+        run: |
+          # Consumer outputs must cross the module boundary via module.* outputs.
+          if git grep -nE 'value[[:space:]]*=.*(azurerm_|data\.|local\.)' -- 'examples/**/outputs.tf'; then
+            echo "Example outputs must reference child-module outputs, not child-module implementation details." >&2
+            exit 1
+          fi
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive
+
       - name: Install dependencies
         run: npm ci
 
@@ -41,6 +53,15 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
+
+      - name: Validate Terraform examples
+        shell: bash
+        run: |
+          while IFS= read -r -d '' main_file; do
+            example_dir="$(dirname "$main_file")"
+            echo "Validating ${example_dir}"
+            (cd "$example_dir" && terraform init -backend=false -input=false && terraform validate)
+          done < <(find examples -name main.tf -print0 | sort -z)
 
       - name: Release
         run: npx semantic-release

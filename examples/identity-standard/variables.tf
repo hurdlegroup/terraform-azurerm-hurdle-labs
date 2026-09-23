@@ -3,6 +3,11 @@ variable "subscription_id" {
   type        = string
 }
 
+variable "tenant_id" {
+  description = "Azure tenant ID used by azurerm and azuread providers."
+  type        = string
+}
+
 variable "app_display_name" {
   description = "Display name for the Azure Entra app registration."
   type        = string
