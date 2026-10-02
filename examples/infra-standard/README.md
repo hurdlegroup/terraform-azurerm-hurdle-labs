@@ -101,6 +101,29 @@ This is the recommended first state for split-permission deployments. It deploys
     terraform apply "infra.tfplan"
     ```
 
+## How to Replace Only the Bridge VM
+Use a targeted replacement when you need to rebuild the Bridge VM without applying unrelated infrastructure changes.
+
+For example, to recover an unhealthy VM, rebuild it from the configured image, or perform Bridge maintenance while leaving a deliberately customised subnet untouched. This is an exceptional maintenance or recovery workflow; use a normal full `terraform plan` and `terraform apply` for routine changes.
+
+From the directory containing this example's Terraform configuration, create and inspect a targeted replacement plan, then apply that saved plan:
+```powershell
+terraform plan `
+  -target="module.hurdle_labs_infra.azurerm_linux_virtual_machine.bridge" `
+  -replace="module.hurdle_labs_infra.azurerm_linux_virtual_machine.bridge" `
+  -out="replace-bridge-vm.tfplan"
+
+# Review the plan; if it includes unexpected changes (especially to the subnet), stop.
+terraform show -no-color "replace-bridge-vm.tfplan"
+terraform apply "replace-bridge-vm.tfplan"
+```
+
+Targeting the VM limits Terraform to that resource and its dependencies; it does not guarantee that the VM is the only resource in the plan. Review the plan carefully. If it proposes an unexpected change, replacement, or deletion for the customised subnet or any other resource, do not apply it.
+
+Resolve the plan difference or adjust the targeting approach before continuing.
+
+A targeted apply can leave unrelated configuration changes unapplied, so run a full `terraform plan` afterward to review remaining drift. Do not apply those changes blindly if they would overwrite infrastructure customisations.
+
 ## How to Decommission Azure Assets
 Use this section when your real intention is to remove Azure resources, not repair Terraform state.
 
