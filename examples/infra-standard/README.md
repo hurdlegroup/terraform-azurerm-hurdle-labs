@@ -12,8 +12,8 @@ This is the recommended first state for split-permission deployments. It deploys
     - Hurdle will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
 2. Extract files from this `examples/infra-standard` documentation folder to a directory on your local machine.
 3. Copy example variables to recognised Terraform name:
-    ```shell
-    cp terraform.example.tfvars terraform.tfvars
+    ```powershell
+    cp terraform.example.tfvars terraform.new.tfvars
     ```
 4. Populate `terraform.tfvars` with your real values. At minimum, these ones must be populated:
    - `subscription_id`
@@ -30,26 +30,25 @@ This is the recommended first state for split-permission deployments. It deploys
    - `bridge_ssh_public_key`
    - `bridge_ssh_allowed_cidrs`
 5. Initialise Terraform:
-    ```shell
+    ```powershell
     terraform init
     ```
 6. Validate your current variable values
-    ```shell
+    ```powershell
     terraform validate
     ```
 7. Generate a Terraform plan:
-    ```shell
+    ```powershell
     terraform plan -out="infra.tfplan"
     ```
 8. If you are happy with the plan, apply it:
-    ```shell
+    ```powershell
     terraform apply "infra.tfplan"
     ```
 9. Load the Bridge's URL (`bridge_public_fqdn` from `terraform.tfstate`) in your web browser. You should see a GuacWS server welcome page like this:
    ![Screenshot of GuacWS holding page loaded in a web browser](https://raw.githubusercontent.com/hurdlegroup/terraform-azurerm-hurdle-labs/6aecb2a11709ccac7a0e164b4a771fc490a241aa/docs/images/screenshot-guacws-holding-page.png)
 
 ## How to Import Existing Azure Resources into Terraform and Then Upgrade Hurdle Bridge
-**Note:** these instructions use PowerShell not Bash, because that's been the most common use-case so far.
 
 1. Extract files from this `examples/infra-standard` documentation folder to a directory on your local machine.
 2. Set `terraform.tfvars` values to match existing Azure resources as closely as possible.
