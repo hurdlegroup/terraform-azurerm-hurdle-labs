@@ -12,8 +12,8 @@ This is the recommended first state for split-permission deployments. It deploys
     - Hurdle will automatically email you a Bridge Secret. You must paste this alphanumeric string into Terraform variable `bridge_lab_secret`.
 2. Extract files from this `examples/infra-standard` documentation folder to a directory on your local machine.
 3. Copy example variables to recognised Terraform name:
-    ```shell
-    cp terraform.example.tfvars terraform.tfvars
+    ```powershell
+    cp terraform.example.tfvars terraform.new.tfvars
     ```
 4. Populate `terraform.tfvars` with your real values. At minimum, these ones must be populated:
    - `subscription_id`
@@ -30,26 +30,25 @@ This is the recommended first state for split-permission deployments. It deploys
    - `bridge_ssh_public_key`
    - `bridge_ssh_allowed_cidrs`
 5. Initialise Terraform:
-    ```shell
+    ```powershell
     terraform init
     ```
 6. Validate your current variable values
-    ```shell
+    ```powershell
     terraform validate
     ```
 7. Generate a Terraform plan:
-    ```shell
+    ```powershell
     terraform plan -out="infra.tfplan"
     ```
 8. If you are happy with the plan, apply it:
-    ```shell
+    ```powershell
     terraform apply "infra.tfplan"
     ```
 9. Load the Bridge's URL (`bridge_public_fqdn` from `terraform.tfstate`) in your web browser. You should see a GuacWS server welcome page like this:
    ![Screenshot of GuacWS holding page loaded in a web browser](https://raw.githubusercontent.com/hurdlegroup/terraform-azurerm-hurdle-labs/6aecb2a11709ccac7a0e164b4a771fc490a241aa/docs/images/screenshot-guacws-holding-page.png)
 
 ## How to Import Existing Azure Resources into Terraform and Then Upgrade Hurdle Bridge
-**Note:** these instructions use PowerShell not Bash, because that's been the most common use-case so far.
 
 1. Extract files from this `examples/infra-standard` documentation folder to a directory on your local machine.
 2. Set `terraform.tfvars` values to match existing Azure resources as closely as possible.
@@ -100,6 +99,29 @@ This is the recommended first state for split-permission deployments. It deploys
     ```powershell
     terraform apply "infra.tfplan"
     ```
+
+## How to Replace Only the Bridge VM
+Use a targeted replacement when you need to rebuild the Bridge VM without applying unrelated infrastructure changes.
+
+For example, to recover an unhealthy VM, rebuild it from the configured image, or perform Bridge maintenance while leaving a deliberately customised subnet untouched. This is an exceptional maintenance or recovery workflow; use a normal full `terraform plan` and `terraform apply` for routine changes.
+
+From the directory containing this example's Terraform configuration, create and inspect a targeted replacement plan, then apply that saved plan:
+```powershell
+terraform plan `
+  -target="module.hurdle_labs_infra.azurerm_linux_virtual_machine.bridge" `
+  -replace="module.hurdle_labs_infra.azurerm_linux_virtual_machine.bridge" `
+  -out="replace-bridge-vm.tfplan"
+
+# Review the plan; if it includes unexpected changes (especially to the subnet), stop.
+terraform show -no-color "replace-bridge-vm.tfplan"
+terraform apply "replace-bridge-vm.tfplan"
+```
+
+Targeting the VM limits Terraform to that resource and its dependencies; it does not guarantee that the VM is the only resource in the plan. Review the plan carefully. If it proposes an unexpected change, replacement, or deletion for the customised subnet or any other resource, do not apply it.
+
+Resolve the plan difference or adjust the targeting approach before continuing.
+
+A targeted apply can leave unrelated configuration changes unapplied, so run a full `terraform plan` afterward to review remaining drift. Do not apply those changes blindly if they would overwrite infrastructure customisations.
 
 ## How to Decommission Azure Assets
 Use this section when your real intention is to remove Azure resources, not repair Terraform state.
